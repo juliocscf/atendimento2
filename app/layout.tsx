@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import '@fontsource-variable/dm-sans';
+import '@fontsource-variable/inter';
 import '@fontsource-variable/manrope';
 import './globals.css';
 import { DemoProvider } from '@/components/demo-provider';
