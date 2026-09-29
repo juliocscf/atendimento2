@@ -335,6 +335,8 @@ Também foi adicionada a exportação protegida `GET /api/export`, disponível s
 
 Cada exportação grava um evento `exported` no `audit_log`, vinculado ao gestor e à organização, registrando apenas as quantidades por coleção. Se o registro de auditoria não puder ser salvo, o arquivo não é entregue.
 
+O painel de configurações consulta os cinco eventos mais recentes pela rota protegida `/api/audit` e mostra a atividade de exportação ao gestor, mantendo o conteúdo do log fora do acesso de outros perfis.
+
 Validação do piloto: em execução local, `GET /api/health/operational` retornou `200` com `configured: true`, `reachable: true`, `readOnlyProbe: true` e as sete tabelas críticas acessíveis; `GET /api/export` sem sessão retornou `401`; `/login` retornou `200`. Typecheck, lint e build de produção também passaram. O lint mantém apenas nove avisos preexistentes, sem erros.
 
 **11.6. Etiqueta de equipamento**
