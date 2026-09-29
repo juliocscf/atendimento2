@@ -286,7 +286,7 @@ As telas de clientes e equipamentos agora consultam os endpoints reais quando ex
 
 Foi criado o bucket privado `device-photos`, com limite de 10 MB, tipos de imagem restritos e políticas de Storage que exigem membro ativo da organização e vínculo do caminho ao equipamento correto. A rota `GET/POST /api/devices/[deviceId]/photos` valida sessão, equipamento, tipo e tamanho, grava o arquivo privado e registra o metadado em `device_photos`; as leituras retornam URLs assinadas temporárias.
 
-A migração `device_photos_storage_0008` está aplicada no projeto `epkgzpiczfrhpickxhxk`. Typecheck e build passaram; o lint permanece sem erros, com apenas avisos preexistentes de imports não utilizados. A interface de captura/listagem de fotos será o próximo incremento da etapa 3. WhatsApp continua reservado para a etapa 8.
+A migração `device_photos_storage_0008` está aplicada no projeto `epkgzpiczfrhpickxhxk`. Typecheck e build passaram; o lint permanece sem erros, com apenas avisos de imagens não otimizadas e imports preexistentes não utilizados. A interface de captura/listagem de fotos está disponível no fluxo autenticado da etiqueta. WhatsApp continua reservado para a etapa 8.
 
 **11.6. Etiqueta de equipamento**
 
