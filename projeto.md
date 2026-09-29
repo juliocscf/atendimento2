@@ -288,6 +288,10 @@ Foi criado o bucket privado `device-photos`, com limite de 10 MB, tipos de image
 
 A migração `device_photos_storage_0008` está aplicada no projeto `epkgzpiczfrhpickxhxk`. Typecheck e build passaram; o lint permanece sem erros, com apenas avisos de imagens não otimizadas e imports preexistentes não utilizados. A interface de captura/listagem de fotos está disponível no fluxo autenticado da etiqueta. WhatsApp continua reservado para a etapa 8.
 
+**11.7. Correção do onboarding**
+
+O onboarding publicado retornava erro de RLS ao criar a primeira unidade. A migração `onboarding_0009_creator_rpc` corrigiu a transação de criação da organização, unidade, vínculo do gestor e auditoria usando uma função protegida, com validação explícita de sessão, slug e ausência de vínculo organizacional anterior; a execução permanece restrita ao papel `authenticated`.
+
 **11.6. Etiqueta de equipamento**
 
 Foi adicionada a rota autenticada `/equipamentos/[deviceId]/etiqueta`, com identificação da assistência, código permanente, dados essenciais, QR Code para a ficha protegida e impressão em formato compacto. A ação aparece nos cards de equipamentos carregados do Supabase; o protótipo continua sem simular etiqueta para registros locais de demonstração.
