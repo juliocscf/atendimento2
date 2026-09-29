@@ -333,6 +333,8 @@ Foi criada a rota somente leitura `/api/health/operational`, que verifica a conf
 
 Também foi adicionada a exportação protegida `GET /api/export`, disponível somente para gestores autenticados da organização. O snapshot JSON reúne clientes, equipamentos, OS, orçamentos, recebimentos e agenda para recuperação operacional; arquivos privados e credenciais ficam fora do pacote.
 
+Cada exportação grava um evento `exported` no `audit_log`, vinculado ao gestor e à organização, registrando apenas as quantidades por coleção. Se o registro de auditoria não puder ser salvo, o arquivo não é entregue.
+
 Validação do piloto: em execução local, `GET /api/health/operational` retornou `200` com `configured: true`, `reachable: true`, `readOnlyProbe: true` e as sete tabelas críticas acessíveis; `GET /api/export` sem sessão retornou `401`; `/login` retornou `200`. Typecheck, lint e build de produção também passaram. O lint mantém apenas nove avisos preexistentes, sem erros.
 
 **11.6. Etiqueta de equipamento**

@@ -19,6 +19,21 @@ export async function GET() {
   ]);
   const errors = [clients, devices, orders, quotes, payments, appointments].filter(result => result.error);
   if (errors.length) return NextResponse.json({ error: errors[0].error?.message ?? 'Export failed.' }, { status: 500 });
+  const { error: auditError } = await supabase.from('audit_log').insert({
+    organization_id: organizationId,
+    actor_id: userId,
+    action: 'exported',
+    entity_type: 'operational_snapshot',
+    metadata: {
+      clients: clients.data?.length ?? 0,
+      devices: devices.data?.length ?? 0,
+      serviceOrders: orders.data?.length ?? 0,
+      quotes: quotes.data?.length ?? 0,
+      payments: payments.data?.length ?? 0,
+      appointments: appointments.data?.length ?? 0,
+    },
+  });
+  if (auditError) return NextResponse.json({ error: 'The export could not be audited safely.' }, { status: 500 });
   const payload = { exportedAt: new Date().toISOString(), organizationId, data: { clients: clients.data ?? [], devices: devices.data ?? [], serviceOrders: orders.data ?? [], quotes: quotes.data ?? [], payments: payments.data ?? [], appointments: appointments.data ?? [] } };
   return new NextResponse(JSON.stringify(payload, null, 2), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="atendimento-backup-${new Date().toISOString().slice(0, 10)}.json"`, 'Cache-Control': 'no-store' } });
 }
