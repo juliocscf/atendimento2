@@ -306,6 +306,12 @@ Foi adicionada a migração `service_order_attachments_0011`, com bucket privado
 
 O drawer da OS agora apresenta atividades, checklist, upload de anexos e links protegidos para os arquivos quando a sessão está conectada ao Supabase. A rota `/ordens/[orderId]/comprovante` gera um comprovante responsivo e imprimível com cliente, equipamento, solicitação, modalidade, status e prazo.
 
+**11.10. Início da etapa 5 — Orçamentos e financeiro**
+
+Foi criada a fundação de `quotes`, `quote_items`, `quote_portal_links` e `service_order_payments`, com versões de orçamento, itens calculados no servidor, aprovação manual/portal, validade, RLS e chave de idempotência para recebimentos. Um gatilho recalcula o total pago da OS após cada recebimento.
+
+Foram adicionados `GET/POST /api/quotes`, `GET/PATCH /api/quotes/[quoteId]` e `GET/POST /api/payments`. A tela de Orçamentos passa a consultar propostas reais quando há sessão autenticada; a tela Financeiro usa os saldos reais retornados pelas OS. O portal seguro e os formulários de aprovação e recebimento serão conectados no próximo incremento.
+
 **11.6. Etiqueta de equipamento**
 
 Foi adicionada a rota autenticada `/equipamentos/[deviceId]/etiqueta`, com identificação da assistência, código permanente, dados essenciais, QR Code para a ficha protegida e impressão em formato compacto. A ação aparece nos cards de equipamentos carregados do Supabase; o protótipo continua sem simular etiqueta para registros locais de demonstração.
