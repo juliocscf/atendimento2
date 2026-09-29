@@ -1,6 +1,6 @@
 **Plano de desenvolvimento — Sistema de atendimento para assistência técnica**
 
-Versão 1.9 · 29/09/2026 · Status: etapa 5 avançada com orçamento, financeiro e portal seguro de aprovação.
+Versão 2.0 · 29/09/2026 · Status: etapa 6 iniciada com agenda persistente, conflitos e modalidades remota/domiciliar.
 
 **1. Objetivo e decisões de produto**
 
@@ -319,6 +319,12 @@ Foi adicionada a emissão autenticada de links temporários para cada versão de
 A página pública `/portal/orcamento/[token]` consulta apenas a proposta vigente por uma função SQL com escopo limitado, exibindo cliente, equipamento, solicitação, itens, total e validade. A aprovação é registrada em `POST /api/portal/quotes/[token]/approve`, com bloqueio transacional, verificação de expiração/revogação e canal `portal`; nenhum dado operacional adicional fica exposto ao portador do link.
 
 O build inclui as novas rotas e a migração `quote_portal_0013`. A integração com WhatsApp permanece reservada à etapa 8, depois da validação funcional das etapas anteriores.
+
+**11.12. Início da etapa 6 — Agenda, remoto e domicílio**
+
+Foram criadas as migrações `schedule_remote_home_0015` e `move_extensions_0016`, com `appointments` e `remote_sessions`, RLS por organização, modalidade, técnico responsável, janela de início/fim, endereço, ferramenta externa, taxa de deslocamento, check-in/check-out e restrição de exclusão para impedir sobreposição confirmada do mesmo técnico. A extensão de suporte à restrição foi movida para o schema dedicado `extensions`.
+
+As rotas `GET/POST /api/appointments` e `PATCH /api/appointments/[appointmentId]` validam a OS vinculada, calculam o fim pela duração, retornam conflito como `409` e permitem confirmar, concluir, cancelar ou registrar chegada/saída. A agenda passa a carregar compromissos reais; o formulário de novo compromisso cobre sessões remotas, visitas domiciliares e atendimentos no balcão, sem depender de WhatsApp.
 
 **11.6. Etiqueta de equipamento**
 
