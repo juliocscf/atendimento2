@@ -286,4 +286,10 @@ As telas de clientes e equipamentos agora consultam os endpoints reais quando ex
 
 Foi criado o bucket privado `device-photos`, com limite de 10 MB, tipos de imagem restritos e políticas de Storage que exigem membro ativo da organização e vínculo do caminho ao equipamento correto. A rota `GET/POST /api/devices/[deviceId]/photos` valida sessão, equipamento, tipo e tamanho, grava o arquivo privado e registra o metadado em `device_photos`; as leituras retornam URLs assinadas temporárias.
 
-A migração `device_photos_storage_0008` está aplicada no projeto `epkgzpiczfrhpickxhxk`. Typecheck e build passaram; o lint permanece sem erros, com apenas avisos preexistentes de imports não utilizados. O próximo incremento da etapa 3 é a interface de captura/listagem de fotos e a etiqueta imprimível com QR Code. WhatsApp continua reservado para a etapa 8.
+A migração `device_photos_storage_0008` está aplicada no projeto `epkgzpiczfrhpickxhxk`. Typecheck e build passaram; o lint permanece sem erros, com apenas avisos preexistentes de imports não utilizados. A interface de captura/listagem de fotos será o próximo incremento da etapa 3. WhatsApp continua reservado para a etapa 8.
+
+**11.6. Etiqueta de equipamento**
+
+Foi adicionada a rota autenticada `/equipamentos/[deviceId]/etiqueta`, com identificação da assistência, código permanente, dados essenciais, QR Code para a ficha protegida e impressão em formato compacto. A ação aparece nos cards de equipamentos carregados do Supabase; o protótipo continua sem simular etiqueta para registros locais de demonstração.
+
+O QR Code não contém dados pessoais nem autorização permanente: aponta para a ficha autenticada do equipamento. A dependência `qrcode` foi adicionada ao projeto. Typecheck, lint e build foram executados após a entrega.
