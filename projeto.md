@@ -310,7 +310,7 @@ O drawer da OS agora apresenta atividades, checklist, upload de anexos e links p
 
 Foi criada a fundação de `quotes`, `quote_items`, `quote_portal_links` e `service_order_payments`, com versões de orçamento, itens calculados no servidor, aprovação manual/portal, validade, RLS e chave de idempotência para recebimentos. Um gatilho recalcula o total pago da OS após cada recebimento.
 
-Foram adicionados `GET/POST /api/quotes`, `GET/PATCH /api/quotes/[quoteId]` e `GET/POST /api/payments`. A tela de Orçamentos passa a consultar propostas reais quando há sessão autenticada; a tela Financeiro usa os saldos reais retornados pelas OS. O portal seguro e os formulários de aprovação e recebimento serão conectados no próximo incremento.
+Foram adicionados `GET/POST /api/quotes`, `GET/PATCH /api/quotes/[quoteId]` e `GET/POST /api/payments`. A tela de Orçamentos consulta propostas reais quando há sessão autenticada e permite criar uma nova versão com itens, desconto, validade e observações. A tela Financeiro usa os saldos reais retornados pelas OS e permite registrar recebimentos com método, observação e chave de idempotência.
 
 **11.11. Portal seguro de aprovação**
 
