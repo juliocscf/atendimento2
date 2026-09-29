@@ -32,8 +32,11 @@ export function OperationalHealth({ notify }: { notify: (message: string, error?
       const anchor = document.createElement('a');
       anchor.href = url;
       anchor.download = `atendimento-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
       anchor.click();
-      URL.revokeObjectURL(url);
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       notify('Backup JSON exportado com sucesso.');
     } catch { notify('Não foi possível exportar os dados.', true); }
     finally { setExporting(false); }
