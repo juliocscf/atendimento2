@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Check, CircleAlert, Download, RefreshCw } from 'lucide-react';
 
 type HealthResult = { table: string; reachable: boolean; visibleRows: number; error: string | null };
@@ -10,7 +10,7 @@ export function OperationalHealth({ notify }: { notify: (message: string, error?
   const [reachable, setReachable] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/health/operational', { cache: 'no-store' });
@@ -20,8 +20,8 @@ export function OperationalHealth({ notify }: { notify: (message: string, error?
       if (!response.ok) notify('A verificação operacional encontrou uma indisponibilidade.', true);
     } catch { setReachable(false); notify('Não foi possível consultar a saúde da aplicação.', true); }
     finally { setLoading(false); }
-  }
-  useEffect(() => { const timer = window.setTimeout(() => { void load(); }, 0); return () => window.clearTimeout(timer); }, []);
+  }, [notify]);
+  useEffect(() => { const timer = window.setTimeout(() => { void load(); }, 0); return () => window.clearTimeout(timer); }, [load]);
   async function exportData() {
     setExporting(true);
     try {
