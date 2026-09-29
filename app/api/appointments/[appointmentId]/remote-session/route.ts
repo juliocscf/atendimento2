@@ -41,5 +41,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ap
   if (!Object.keys(patch).length) return NextResponse.json({ error: 'A session update is required.' }, { status: 400 });
   const { data, error } = await supabase.from('remote_sessions').update(patch).eq('appointment_id', appointmentId).eq('organization_id', membership.organization_id).select('id, appointment_id, tool_name, authorization_at, started_at, ended_at, summary').single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (body?.started || body?.ended) {
+    await supabase.from('appointments').update({ status: body.ended ? 'completed' : 'confirmed', updated_by: userId }).eq('id', appointmentId).eq('organization_id', membership.organization_id);
+  }
   return NextResponse.json({ data });
 }
