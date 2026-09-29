@@ -1,6 +1,6 @@
 **Plano de desenvolvimento — Sistema de atendimento para assistência técnica**
 
-Versão 1.4 · 29/09/2026 · Status: etapa 1 concluída na entrega do protótipo; etapa 2 iniciada com fundação Supabase versionada e protegida por RLS.
+Versão 1.5 · 29/09/2026 · Status: etapa 2 em andamento com autenticação SSR, proteção de rotas e fundação Supabase versionada e protegida por RLS.
 
 **1. Objetivo e decisões de produto**
 
@@ -261,3 +261,11 @@ Foi aplicada e versionada a fundação inicial do banco, com `organizations`, `u
 O projeto recebeu os clientes SSR e de navegador do Supabase, um `proxy.ts` compatível com o Next.js 16 para renovação de sessão e uma rota de diagnóstico somente de leitura em `/api/health/supabase`. As chaves ficam fora do repositório; `.env.example` registra apenas os nomes das variáveis públicas necessárias.
 
 As auditorias de segurança do Supabase estão limpas após o hardening. O advisor de performance apresenta somente índices ainda sem uso, esperado enquanto as tabelas estão vazias; isso será reavaliado após os primeiros módulos operacionais.
+
+**11.3. Autenticação inicial da etapa 2**
+
+Foi adicionada a tela de login com entrada por e-mail e senha, criação de acesso, recuperação de senha e atualização de senha. O callback de confirmação troca o código por sessão, e o encerramento de sessão usa um handler no servidor.
+
+O `proxy.ts` do Next.js 16 renova a sessão com `getClaims()` e redireciona usuários não autenticados para `/login`, preservando a rota de destino. A rota de saúde do Supabase permanece pública e somente de leitura. O perfil é criado automaticamente no cadastro por trigger no `auth.users`.
+
+Validação realizada: build e typecheck passaram; `/login` e `/api/health/supabase` respondem publicamente, enquanto `/` redireciona para o login quando não há sessão. O advisor de segurança do Supabase continua sem alertas.
