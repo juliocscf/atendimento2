@@ -298,7 +298,7 @@ Foi criada a fundação real de OS no Supabase com `service_orders`, `service_or
 
 Foram adicionados `GET/POST /api/orders` e `GET/PATCH /api/orders/[orderId]`. A interface agora consulta as OS reais quando o usuário está autenticado, abre novas OS pelo formulário existente e atualiza o status pelo drawer; o modo demonstração continua disponível sem sessão ou configuração.
 
-Typecheck, lint e build passaram. A próxima parte da etapa 4 é carregar o histórico e checklist reais no drawer, permitir atividades e anexos da OS e criar o comprovante de entrada/entrega para impressão.
+Typecheck, lint e build passaram. O drawer autenticado já busca o histórico de eventos real após abrir uma OS; a próxima parte da etapa 4 é permitir checklist, atividades e anexos da OS e criar o comprovante de entrada/entrega para impressão.
 
 **11.6. Etiqueta de equipamento**
 
