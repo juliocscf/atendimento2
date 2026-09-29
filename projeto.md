@@ -1,6 +1,6 @@
 **Plano de desenvolvimento — Sistema de atendimento para assistência técnica**
 
-Versão 1.7 · 29/09/2026 · Status: etapa 3 avançada com telas conectadas ao Supabase e armazenamento privado de fotos.
+Versão 1.8 · 29/09/2026 · Status: etapa 4 iniciada com ordens de serviço reais, histórico de status e checklist base.
 
 **1. Objetivo e decisões de produto**
 
@@ -291,6 +291,14 @@ A migração `device_photos_storage_0008` está aplicada no projeto `epkgzpiczfr
 **11.7. Correção do onboarding**
 
 O onboarding publicado retornava erro de RLS ao criar a primeira unidade. A migração `onboarding_0009_creator_rpc` corrigiu a transação de criação da organização, unidade, vínculo do gestor e auditoria usando uma função protegida, com validação explícita de sessão, slug e ausência de vínculo organizacional anterior; a execução permanece restrita ao papel `authenticated`.
+
+**11.8. Início da etapa 4 — Ordens de serviço e execução**
+
+Foi criada a fundação real de OS no Supabase com `service_orders`, `service_order_events` e `service_order_tasks`, RLS por organização e função, vínculos compostos com cliente, equipamento e unidade, numeração concorrente no formato `OS-AAAA-00001` e evento automático de abertura. A função `advance_service_order` valida as transições do fluxo antes de registrar o histórico.
+
+Foram adicionados `GET/POST /api/orders` e `GET/PATCH /api/orders/[orderId]`. A interface agora consulta as OS reais quando o usuário está autenticado, abre novas OS pelo formulário existente e atualiza o status pelo drawer; o modo demonstração continua disponível sem sessão ou configuração.
+
+Typecheck, lint e build passaram. A próxima parte da etapa 4 é carregar o histórico e checklist reais no drawer, permitir atividades e anexos da OS e criar o comprovante de entrada/entrega para impressão.
 
 **11.6. Etiqueta de equipamento**
 
