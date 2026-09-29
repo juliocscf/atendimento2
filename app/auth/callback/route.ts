@@ -10,6 +10,8 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient();
     await supabase.auth.exchangeCodeForSession(code);
+    const { data: membership } = await supabase.from('unit_memberships').select('organization_id').limit(1).maybeSingle();
+    if (!membership) return NextResponse.redirect(new URL('/onboarding', url.origin));
   }
 
   return NextResponse.redirect(new URL(destination, url.origin));

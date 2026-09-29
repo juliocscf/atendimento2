@@ -66,7 +66,8 @@ export function LoginForm() {
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (signInError) return setError('E-mail ou senha inválidos.');
-    window.location.assign(nextPath());
+    const { data: membership } = await supabase.from('unit_memberships').select('organization_id').limit(1).maybeSingle();
+    window.location.assign(membership ? nextPath() : '/onboarding');
   }
 
   const isReset = mode === 'reset';

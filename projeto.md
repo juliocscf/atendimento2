@@ -1,6 +1,6 @@
 **Plano de desenvolvimento — Sistema de atendimento para assistência técnica**
 
-Versão 1.5 · 29/09/2026 · Status: etapa 2 em andamento com autenticação SSR, proteção de rotas e fundação Supabase versionada e protegida por RLS.
+Versão 1.6 · 29/09/2026 · Status: etapa 3 iniciada com entidades reais de clientes e equipamentos, geração permanente de códigos e endpoints autenticados.
 
 **1. Objetivo e decisões de produto**
 
@@ -269,3 +269,13 @@ Foi adicionada a tela de login com entrada por e-mail e senha, criação de aces
 O `proxy.ts` do Next.js 16 renova a sessão com `getClaims()` e redireciona usuários não autenticados para `/login`, preservando a rota de destino. A rota de saúde do Supabase permanece pública e somente de leitura. O perfil é criado automaticamente no cadastro por trigger no `auth.users`.
 
 Validação realizada: build e typecheck passaram; `/login` e `/api/health/supabase` respondem publicamente, enquanto `/` redireciona para o login quando não há sessão. O advisor de segurança do Supabase continua sem alertas.
+
+**11.4. Início da etapa 3 — Clientes e equipamentos**
+
+Foram criadas as entidades reais `clients`, `client_contacts`, `client_addresses`, `devices` e `device_photos`, todas com vínculo à organização, chaves compostas para evitar cruzamento entre unidades, índices de busca e RLS por função.
+
+O código visível do equipamento é gerado exclusivamente no banco com quatro caracteres do alfabeto seguro `23456789ABCDEFGHJKLMNPQRSTUVWXYZ`. Ele possui unicidade por organização, não pode ser alterado depois da criação e continua reservado quando o equipamento é arquivado.
+
+Foram adicionados os endpoints autenticados `GET/POST /api/clients`, `GET/POST /api/devices` e `POST /api/onboarding`. A primeira configuração cria a assistência, a unidade Matriz e o vínculo do primeiro usuário como gestor. APIs sem sessão retornam `401` em JSON; a rota de saúde permanece somente de leitura.
+
+As migrações `clients_devices_0004`, `clients_devices_0005_hardening`, `onboarding_0006` e `onboarding_0007_hardening` estão aplicadas no Supabase. A auditoria de segurança permanece sem alertas; os avisos de performance são apenas índices ainda sem uso enquanto as tabelas estão vazias.
