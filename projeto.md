@@ -1,6 +1,6 @@
 **Plano de desenvolvimento — Sistema de atendimento para assistência técnica**
 
-Versão 1.3 · 28/09/2026 · Status: etapa 1 iniciada com protótipo navegável; projeto Supabase definido e MCP validado em consulta somente de leitura.
+Versão 1.4 · 29/09/2026 · Status: etapa 1 concluída na entrega do protótipo; etapa 2 iniciada com fundação Supabase versionada e protegida por RLS.
 
 **1. Objetivo e decisões de produto**
 
@@ -251,3 +251,13 @@ Este arquivo será atualizado conforme decisões e entregas. Apenas este plano f
 Foi criado o protótipo navegável local em `D:\PROJETOS\Atendimento-2`, com Next.js, TypeScript, Tailwind CSS e componentes reutilizáveis. A entrega demonstra o painel, ordens de serviço em lista e quadro, detalhes e avanço de status, clientes, equipamentos com código de quatro caracteres, agenda, orçamentos, financeiro e configurações.
 
 O protótipo usa dados ilustrativos e permite criar OS, clientes e equipamentos, persistindo essas simulações somente no navegador. A interface foi preparada para desktop e celular, com estados de vazio, busca, pendências, feedback de gravação e fluxo de três modalidades: balcão, remoto e domicílio. Nenhuma configuração ou chamada do WhatsApp faz parte desta etapa; a integração permanece reservada para a etapa 8, depois que as etapas 1 a 7 estiverem funcionais.
+
+**11.2. Início da etapa 2 — Fundação**
+
+A etapa 1 foi encerrada com o protótipo navegável revisado, tipografia legível, validação de build e publicação sincronizada no repositório. A etapa 2 foi iniciada no projeto Supabase `epkgzpiczfrhpickxhxk`.
+
+Foi aplicada e versionada a fundação inicial do banco, com `organizations`, `units`, `profiles`, `unit_memberships` e `audit_log`, chaves estrangeiras, índices, gatilhos de atualização e RLS. O acesso por unidade e função usa políticas separadas para gestor, atendimento, técnico e financeiro; a integração com WhatsApp continua fora desta etapa.
+
+O projeto recebeu os clientes SSR e de navegador do Supabase, um `proxy.ts` compatível com o Next.js 16 para renovação de sessão e uma rota de diagnóstico somente de leitura em `/api/health/supabase`. As chaves ficam fora do repositório; `.env.example` registra apenas os nomes das variáveis públicas necessárias.
+
+As auditorias de segurança do Supabase estão limpas após o hardening. O advisor de performance apresenta somente índices ainda sem uso, esperado enquanto as tabelas estão vazias; isso será reavaliado após os primeiros módulos operacionais.
