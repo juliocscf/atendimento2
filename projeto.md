@@ -331,6 +331,8 @@ O painel principal também utiliza os compromissos reais do dia quando há sess�
 
 Foi criada a rota somente leitura `/api/health/operational`, que verifica a configuração e a disponibilidade das tabelas críticas de organizações, OS, orçamento, recebimentos, agenda, sessões remotas e histórico de compromissos. A checagem respeita RLS e informa apenas as linhas visíveis para a sessão atual, sem alterar dados.
 
+Também foi adicionada a exportação protegida `GET /api/export`, disponível somente para gestores autenticados da organização. O snapshot JSON reúne clientes, equipamentos, OS, orçamentos, recebimentos e agenda para recuperação operacional; arquivos privados e credenciais ficam fora do pacote.
+
 **11.6. Etiqueta de equipamento**
 
 Foi adicionada a rota autenticada `/equipamentos/[deviceId]/etiqueta`, com identificação da assistência, código permanente, dados essenciais, QR Code para a ficha protegida e impressão em formato compacto. A ação aparece nos cards de equipamentos carregados do Supabase; o protótipo continua sem simular etiqueta para registros locais de demonstração.
