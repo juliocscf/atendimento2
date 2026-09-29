@@ -1,6 +1,6 @@
 **Plano de desenvolvimento — Sistema de atendimento para assistência técnica**
 
-Versão 1.8 · 29/09/2026 · Status: etapa 4 iniciada com ordens de serviço reais, histórico de status e checklist base.
+Versão 1.9 · 29/09/2026 · Status: etapa 5 avançada com orçamento, financeiro e portal seguro de aprovação.
 
 **1. Objetivo e decisões de produto**
 
@@ -311,6 +311,14 @@ O drawer da OS agora apresenta atividades, checklist, upload de anexos e links p
 Foi criada a fundação de `quotes`, `quote_items`, `quote_portal_links` e `service_order_payments`, com versões de orçamento, itens calculados no servidor, aprovação manual/portal, validade, RLS e chave de idempotência para recebimentos. Um gatilho recalcula o total pago da OS após cada recebimento.
 
 Foram adicionados `GET/POST /api/quotes`, `GET/PATCH /api/quotes/[quoteId]` e `GET/POST /api/payments`. A tela de Orçamentos passa a consultar propostas reais quando há sessão autenticada; a tela Financeiro usa os saldos reais retornados pelas OS. O portal seguro e os formulários de aprovação e recebimento serão conectados no próximo incremento.
+
+**11.11. Portal seguro de aprovação**
+
+Foi adicionada a emissão autenticada de links temporários para cada versão de orçamento em `POST /api/quotes/[quoteId]/portal-link`. O link usa token aleatório, persiste somente o hash SHA-256 no banco e tem validade configurável entre 1 e 30 dias.
+
+A página pública `/portal/orcamento/[token]` consulta apenas a proposta vigente por uma função SQL com escopo limitado, exibindo cliente, equipamento, solicitação, itens, total e validade. A aprovação é registrada em `POST /api/portal/quotes/[token]/approve`, com bloqueio transacional, verificação de expiração/revogação e canal `portal`; nenhum dado operacional adicional fica exposto ao portador do link.
+
+O build inclui as novas rotas e a migração `quote_portal_0013`. A integração com WhatsApp permanece reservada à etapa 8, depois da validação funcional das etapas anteriores.
 
 **11.6. Etiqueta de equipamento**
 
