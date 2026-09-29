@@ -1,6 +1,6 @@
 **Plano de desenvolvimento — Sistema de atendimento para assistência técnica**
 
-Versão 1.6 · 29/09/2026 · Status: etapa 3 iniciada com entidades reais de clientes e equipamentos, geração permanente de códigos e endpoints autenticados.
+Versão 1.7 · 29/09/2026 · Status: etapa 3 avançada com telas conectadas ao Supabase e armazenamento privado de fotos.
 
 **1. Objetivo e decisões de produto**
 
@@ -279,3 +279,11 @@ O código visível do equipamento é gerado exclusivamente no banco com quatro c
 Foram adicionados os endpoints autenticados `GET/POST /api/clients`, `GET/POST /api/devices` e `POST /api/onboarding`. A primeira configuração cria a assistência, a unidade Matriz e o vínculo do primeiro usuário como gestor. APIs sem sessão retornam `401` em JSON; a rota de saúde permanece somente de leitura.
 
 As migrações `clients_devices_0004`, `clients_devices_0005_hardening`, `onboarding_0006` e `onboarding_0007_hardening` estão aplicadas no Supabase. A auditoria de segurança permanece sem alertas; os avisos de performance são apenas índices ainda sem uso enquanto as tabelas estão vazias.
+
+**11.5. Integração operacional da etapa 3**
+
+As telas de clientes e equipamentos agora consultam os endpoints reais quando existe uma sessão autenticada e mantêm o protótipo demonstrável como fallback quando a aplicação ainda não está configurada ou o usuário não concluiu o onboarding. Os formulários de cadastro enviam clientes e equipamentos ao Supabase, exibem o código gerado pelo banco e atualizam as listas após a gravação.
+
+Foi criado o bucket privado `device-photos`, com limite de 10 MB, tipos de imagem restritos e políticas de Storage que exigem membro ativo da organização e vínculo do caminho ao equipamento correto. A rota `GET/POST /api/devices/[deviceId]/photos` valida sessão, equipamento, tipo e tamanho, grava o arquivo privado e registra o metadado em `device_photos`; as leituras retornam URLs assinadas temporárias.
+
+A migração `device_photos_storage_0008` está aplicada no projeto `epkgzpiczfrhpickxhxk`. Typecheck e build passaram; o lint permanece sem erros, com apenas avisos preexistentes de imports não utilizados. O próximo incremento da etapa 3 é a interface de captura/listagem de fotos e a etiqueta imprimível com QR Code. WhatsApp continua reservado para a etapa 8.
