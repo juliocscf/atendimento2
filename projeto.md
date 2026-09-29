@@ -298,7 +298,13 @@ Foi criada a fundação real de OS no Supabase com `service_orders`, `service_or
 
 Foram adicionados `GET/POST /api/orders` e `GET/PATCH /api/orders/[orderId]`. A interface agora consulta as OS reais quando o usuário está autenticado, abre novas OS pelo formulário existente e atualiza o status pelo drawer; o modo demonstração continua disponível sem sessão ou configuração.
 
-Typecheck, lint e build passaram. O drawer autenticado já busca o histórico de eventos real após abrir uma OS; a próxima parte da etapa 4 é permitir checklist, atividades e anexos da OS e criar o comprovante de entrada/entrega para impressão.
+Typecheck, lint e build passaram. O drawer autenticado já busca o histórico de eventos real após abrir uma OS. Checklist, atividades, anexos e comprovante são detalhados na entrega seguinte.
+
+**11.9. Execução da OS e comprovante**
+
+Foi adicionada a migração `service_order_attachments_0011`, com bucket privado de 20 MB e políticas vinculadas à OS. As rotas autenticadas permitem criar e concluir tarefas, anexar arquivos e listar anexos com URLs temporárias.
+
+O drawer da OS agora apresenta atividades, checklist, upload de anexos e links protegidos para os arquivos quando a sessão está conectada ao Supabase. A rota `/ordens/[orderId]/comprovante` gera um comprovante responsivo e imprimível com cliente, equipamento, solicitação, modalidade, status e prazo.
 
 **11.6. Etiqueta de equipamento**
 
