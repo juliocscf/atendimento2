@@ -339,6 +339,8 @@ O painel de configurações consulta os cinco eventos mais recentes pela rota pr
 
 Na revisão de segurança remota, a migração `quote_portal_role_hardening_0018` retirou `EXECUTE` do papel `authenticated` nas funções públicas do portal, preservando o acesso `anon` exigido pelo link temporário. A verificação confirmou `authenticated_can_read_portal=false`, `authenticated_can_approve=false`, e acesso `anon` mantido. O advisor passou a reportar apenas os avisos intencionais do portal público, do onboarding e da proteção contra senhas vazadas desativada.
 
+O advisor de performance também foi revisado após a migração `foreign_key_indexes_0019`: os 21 avisos de chaves estrangeiras sem índice desapareceram. Permanecem apenas índices ainda sem uso em um banco de piloto com poucos registros e quatro avisos de políticas permissivas sobrepostas, que serão reavaliados depois de dados reais e sem alterar o comportamento de acesso agora.
+
 Validação do piloto: em execução local, `GET /api/health/operational` retornou `200` com `configured: true`, `reachable: true`, `readOnlyProbe: true` e as sete tabelas críticas acessíveis; `GET /api/export` sem sessão retornou `401`; `/login` retornou `200`. Typecheck, lint e build de produção também passaram. O lint mantém apenas nove avisos preexistentes, sem erros.
 
 **11.6. Etiqueta de equipamento**
