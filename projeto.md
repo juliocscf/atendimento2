@@ -1,6 +1,6 @@
 **Plano de desenvolvimento — Sistema de atendimento para assistência técnica**
 
-Versão 2.0 · 29/09/2026 · Status: etapa 6 iniciada com agenda persistente, conflitos e modalidades remota/domiciliar.
+Versão 2.1 · 29/09/2026 · Status: etapa 7 iniciada com verificação operacional integrada para piloto.
 
 **1. Objetivo e decisões de produto**
 
@@ -326,6 +326,10 @@ Foram criadas as migrações `schedule_remote_home_0015` e `move_extensions_0016
 
 As rotas `GET/POST /api/appointments` e `PATCH /api/appointments/[appointmentId]` validam a OS vinculada, calculam o fim pela duração, retornam conflito como `409` e permitem confirmar, concluir, cancelar, reagendar ou registrar chegada/saída. A rota `/api/appointments/[appointmentId]/remote-session` registra autorização, ferramenta, início, encerramento e resumo técnico; iniciar a sessão confirma o compromisso e encerrá-la o conclui automaticamente. A rota `/api/appointments/[appointmentId]/events` expõe o histórico protegido de criação, mudanças de status, chegada e saída. A agenda passa a carregar compromissos reais; o formulário de novo compromisso cobre sessões remotas, visitas domiciliares e atendimentos no balcão, e o painel de execução permite reagendar ou concluir a sessão/visita sem depender de WhatsApp.
 O painel principal também utiliza os compromissos reais do dia quando há sessão autenticada, mantendo pendências e agenda na mesma visão operacional.
+
+**11.13. Início da etapa 7 — Verificação operacional integrada**
+
+Foi criada a rota somente leitura `/api/health/operational`, que verifica a configuração e a disponibilidade das tabelas críticas de organizações, OS, orçamento, recebimentos, agenda, sessões remotas e histórico de compromissos. A checagem respeita RLS e informa apenas as linhas visíveis para a sessão atual, sem alterar dados.
 
 **11.6. Etiqueta de equipamento**
 
