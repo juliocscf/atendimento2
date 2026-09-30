@@ -347,6 +347,8 @@ Validação do piloto: em execução local, `GET /api/health/operational` retorn
 
 Foi adicionado o smoke test `npm run test:e2e`, com servidor local controlado e um worker, cobrindo o HTML do login, a saúde operacional e a proteção das rotas `/api/audit` e `/api/export`; a execução validada passou com 1 teste. A inspeção visual e o fluxo completo com a conta gestora continuam sendo a validação manual do piloto.
 
+O menu agora diferencia `Modo demonstração`, `Conectando ao banco` e `Dados conectados`. Quando a sessão está vinculada ao Supabase e as tabelas estão vazias, a lista de OS mostra zero registros; quando não há dados reais carregados, o protótipo usa os nove registros seed da demonstração. O contador lateral acompanha a fonte ativa e não fica fixo.
+
 **11.6. Etiqueta de equipamento**
 
 Foi adicionada a rota autenticada `/equipamentos/[deviceId]/etiqueta`, com identificação da assistência, código permanente, dados essenciais, QR Code para a ficha protegida e impressão em formato compacto. A ação aparece nos cards de equipamentos carregados do Supabase; o protótipo continua sem simular etiqueta para registros locais de demonstração.
