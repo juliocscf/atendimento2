@@ -19,6 +19,7 @@ import { AppointmentDialog } from '@/components/appointment-dialog';
 import { AppointmentDrawer } from '@/components/appointment-drawer';
 import { OperationalHealth } from '@/components/operational-health';
 import { hasSupabaseConfig } from '@/lib/supabase/env';
+import { createClient } from '@/lib/supabase/client';
 
 const navItems: { key: View; label: string; icon: typeof LayoutDashboard; group?: string }[] = [
   { key: 'painel', label: 'Painel', icon: LayoutDashboard },
@@ -46,11 +47,13 @@ function IconButton({ label, onClick, children, className = '' }: { label: strin
 function ModePill({ mode }: { mode: Mode }) { const Icon = modeIcon[mode]; return <span className={`mode-pill mode-${normalize(mode)}`}><Icon size={14} />{mode}</span>; }
 function StatusPill({ status, late = false }: { status: Status; late?: boolean }) { return <span className={`status-pill status-${normalize(status)} ${late ? 'late' : ''}`}><span className="status-dot" />{late ? 'Atrasada · ' : ''}{status}</span>; }
 function Avatar({ name, small = false }: { name: string; small?: boolean }) { return <span className={`avatar ${small ? 'small' : ''}`} aria-label={name}>{initials(name)}</span>; }
-function PageHeading({ view, onNew }: { view: View; onNew: () => void }) { const { title, description, eyebrow } = viewTitles[view]; return <div className="page-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div><div className="heading-actions"><button className="button ghost hide-mobile"><span>⌘</span> Atalhos</button>{view !== 'configuracoes' && <button className="button primary" onClick={onNew}><Plus size={18} /> Novo atendimento</button>}</div></div>; }
+function PageHeading({ view, onNew, userName }: { view: View; onNew: () => void; userName: string }) { const { title: defaultTitle, description, eyebrow } = viewTitles[view]; const title = view === 'painel' ? (userName === 'Usuário conectado' ? 'Painel da assistência' : `Bom dia, ${userName.split(' ')[0]}`) : defaultTitle; return <div className="page-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div><div className="heading-actions"><button className="button ghost hide-mobile"><span>⌘</span> Atalhos</button>{view !== 'configuracoes' && <button className="button primary" onClick={onNew}><Plus size={18} /> Novo atendimento</button>}</div></div>; }
 
 export function Workspace({ view: initialView }: { view: View }) {
   const { data, ready, notify, reset } = useDemo();
   const liveMode = hasSupabaseConfig();
+  const [userName, setUserName] = useState(liveMode ? 'Usuário conectado' : 'Marina Azevedo');
+  const [userRole, setUserRole] = useState(liveMode ? 'Conta autenticada' : 'Gestora');
   const [liveResources, setLiveResources] = useState<{ clients: Client[]; devices: Device[]; orders: Order[]; appointments: Appointment[]; quotes: Array<{ id: string; serviceOrderId: string; version: number; status: string; totalCents: number; validUntil: string | null }> } | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
   const [view, setView] = useState(initialView);
@@ -59,6 +62,21 @@ export function Workspace({ view: initialView }: { view: View }) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [modal, setModal] = useState<'order' | 'client' | 'device' | 'quote' | 'payment' | 'appointment' | null>(null);
+  useEffect(() => {
+    if (!liveMode) return;
+    const supabase = createClient();
+    void (async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) return;
+      const [{ data: profile }, { data: membership }] = await Promise.all([
+        supabase.from('profiles').select('full_name').eq('id', authData.user.id).maybeSingle(),
+        supabase.from('unit_memberships').select('role').eq('user_id', authData.user.id).eq('is_active', true).limit(1).maybeSingle(),
+      ]);
+      setUserName(profile?.full_name?.trim() || authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || 'Usuário conectado');
+      const roleLabels: Record<string, string> = { gestor: 'Gestora', atendimento: 'Atendimento', tecnico: 'Técnico', financeiro: 'Financeiro' };
+      setUserRole(roleLabels[membership?.role ?? ''] ?? 'Equipe');
+    })();
+  }, [liveMode]);
   const refreshLiveResources = useCallback(async () => {
     if (!liveMode) return;
     setLiveLoading(true);
@@ -90,8 +108,8 @@ export function Workspace({ view: initialView }: { view: View }) {
   return <div className="app-shell">
     <Sidebar active={view} onNavigate={navigate} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} reset={reset} orderCount={resourceData.orders.length} dataMode={liveResources ? 'live' : liveMode && liveLoading ? 'connecting' : 'demo'} />
     <div className="main-shell">
-      <header className="topbar"><div className="mobile-brand"><span className="brand-mark small-mark">N</span><b>Nexo</b></div><IconButton label="Abrir menu" className="mobile-menu" onClick={() => setMobileOpen(true)}><Menu size={21} /></IconButton><div className="global-search"><Search size={17} /><input aria-label="Buscar no sistema" placeholder="Buscar cliente, OS ou equipamento" value={search} onChange={event => setSearch(event.target.value)} /><kbd>⌘ K</kbd></div><div className="topbar-actions"><button className="unit-switcher"><span className="unit-icon"><Store size={16} /></span><span className="hide-mobile">Matriz · Centro</span><ChevronDown size={15} /></button><IconButton label="Notificações"><Bell size={19} /><span className="notification-dot" /></IconButton><div className="user-profile"><Avatar name="Marina Azevedo" small /><span className="user-meta"><b>Marina Azevedo</b><small>Gestora</small></span><ChevronDown size={15} /></div></div></header>
-      <main className="content"><PageHeading view={view} onNew={onNew} />{!ready && <div className="loading-bar" aria-label="Carregando demonstração" />}<SearchResults query={search} data={resourceData} onOrder={openOrder} onClient={client => { notify(`Cliente ${client.name} selecionado.`); navigate('clientes'); }} />{view === 'painel' && <Dashboard data={resourceData} clientName={clientName} device={device} appointmentsOverride={liveResources?.appointments ?? null} onOrder={openOrder} onNavigate={navigate} onNew={onNew} />}{view === 'ordens' && <OrdersView data={resourceData} search={search} clientName={clientName} device={device} onOrder={openOrder} onNew={onNew} />}{view === 'clientes' && <ClientsView data={resourceData} search={search} clientsOverride={liveResources?.clients ?? null} devicesOverride={liveResources?.devices ?? null} liveLoading={liveLoading} onNew={() => setModal('client')} />}{view === 'equipamentos' && <DevicesView data={resourceData} search={search} clientName={clientName} devicesOverride={liveResources?.devices ?? null} clientsOverride={liveResources?.clients ?? null} liveLoading={liveLoading} onNew={() => setModal('device')} />}{view === 'agenda' && <AgendaView data={resourceData} clientName={clientName} appointmentsOverride={liveResources?.appointments ?? null} liveMode={Boolean(liveResources)} onNew={() => setModal('appointment')} onSelect={setSelectedAppointment} notify={notify} />}{view === 'orcamentos' && <QuotesView data={resourceData} clientName={clientName} quotesOverride={liveResources?.quotes ?? null} onOrder={openOrder} notify={notify} onNew={() => setModal('quote')} />}{view === 'financeiro' && <FinanceView data={resourceData} clientName={clientName} onOrder={openOrder} onNew={() => setModal('payment')} />}{view === 'configuracoes' && <SettingsView notify={notify} reset={reset} />}</main>
+      <header className="topbar"><div className="mobile-brand"><span className="brand-mark small-mark">N</span><b>Nexo</b></div><IconButton label="Abrir menu" className="mobile-menu" onClick={() => setMobileOpen(true)}><Menu size={21} /></IconButton><div className="global-search"><Search size={17} /><input aria-label="Buscar no sistema" placeholder="Buscar cliente, OS ou equipamento" value={search} onChange={event => setSearch(event.target.value)} /><kbd>⌘ K</kbd></div><div className="topbar-actions"><button className="unit-switcher"><span className="unit-icon"><Store size={16} /></span><span className="hide-mobile">Matriz · Centro</span><ChevronDown size={15} /></button><IconButton label="Notificações"><Bell size={19} /><span className="notification-dot" /></IconButton><div className="user-profile"><Avatar name={userName} small /><span className="user-meta"><b>{userName}</b><small>{userRole}</small></span><ChevronDown size={15} /></div></div></header>
+      <main className="content"><PageHeading view={view} userName={userName} onNew={onNew} />{!ready && <div className="loading-bar" aria-label="Carregando demonstração" />}<SearchResults query={search} data={resourceData} onOrder={openOrder} onClient={client => { notify(`Cliente ${client.name} selecionado.`); navigate('clientes'); }} />{view === 'painel' && <Dashboard data={resourceData} clientName={clientName} device={device} appointmentsOverride={liveResources?.appointments ?? null} onOrder={openOrder} onNavigate={navigate} onNew={onNew} />}{view === 'ordens' && <OrdersView data={resourceData} search={search} clientName={clientName} device={device} onOrder={openOrder} onNew={onNew} />}{view === 'clientes' && <ClientsView data={resourceData} search={search} clientsOverride={liveResources?.clients ?? null} devicesOverride={liveResources?.devices ?? null} liveLoading={liveLoading} onNew={() => setModal('client')} />}{view === 'equipamentos' && <DevicesView data={resourceData} search={search} clientName={clientName} devicesOverride={liveResources?.devices ?? null} clientsOverride={liveResources?.clients ?? null} liveLoading={liveLoading} onNew={() => setModal('device')} />}{view === 'agenda' && <AgendaView data={resourceData} clientName={clientName} appointmentsOverride={liveResources?.appointments ?? null} liveMode={Boolean(liveResources)} onNew={() => setModal('appointment')} onSelect={setSelectedAppointment} notify={notify} />}{view === 'orcamentos' && <QuotesView data={resourceData} clientName={clientName} quotesOverride={liveResources?.quotes ?? null} onOrder={openOrder} notify={notify} onNew={() => setModal('quote')} />}{view === 'financeiro' && <FinanceView data={resourceData} clientName={clientName} onOrder={openOrder} onNew={() => setModal('payment')} />}{view === 'configuracoes' && <SettingsView notify={notify} reset={reset} />}</main>
     </div>
     {selectedOrder && <OrderDrawer order={selectedOrder} data={resourceData} liveMode={Boolean(liveResources)} onUpdated={() => void refreshLiveResources()} close={() => setSelectedOrder(null)} notify={notify} />}
     {selectedAppointment && <AppointmentDrawer appointment={selectedAppointment} data={resourceData} liveMode={Boolean(liveResources)} onUpdated={() => void refreshLiveResources()} close={() => setSelectedAppointment(null)} notify={notify} />}
