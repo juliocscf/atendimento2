@@ -345,6 +345,8 @@ A migração `rls_policy_consolidation_0020` separou as políticas `ALL` de iten
 
 Validação do piloto: em execução local, `GET /api/health/operational` retornou `200` com `configured: true`, `reachable: true`, `readOnlyProbe: true` e as sete tabelas críticas acessíveis; `GET /api/export` sem sessão retornou `401`; `/login` retornou `200`. Typecheck, lint e build de produção também passaram. O lint mantém apenas nove avisos preexistentes, sem erros.
 
+Foi adicionado o smoke test `npm run test:e2e`, com servidor local controlado e um worker, cobrindo o HTML do login, a saúde operacional e a proteção das rotas `/api/audit` e `/api/export`; a execução validada passou com 1 teste. A inspeção visual e o fluxo completo com a conta gestora continuam sendo a validação manual do piloto.
+
 **11.6. Etiqueta de equipamento**
 
 Foi adicionada a rota autenticada `/equipamentos/[deviceId]/etiqueta`, com identificação da assistência, código permanente, dados essenciais, QR Code para a ficha protegida e impressão em formato compacto. A ação aparece nos cards de equipamentos carregados do Supabase; o protótipo continua sem simular etiqueta para registros locais de demonstração.
