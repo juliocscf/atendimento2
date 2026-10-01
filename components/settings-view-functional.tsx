@@ -39,17 +39,14 @@ function readStoredSettings(): SettingsState {
 
 export function FunctionalSettingsView({ notify, reset, liveMode = false }: { notify: Notify; reset: () => void; liveMode?: boolean }) {
   const [tab, setTab] = useState<Tab>('unit');
-  const [settings, setSettings] = useState<SettingsState>(initialSettings);
+  const [settings, setSettings] = useState<SettingsState>(() => readStoredSettings());
   const [role, setRole] = useState('Gestora');
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(liveMode);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!liveMode) {
-      setSettings(readStoredSettings());
-      return;
-    }
+    if (!liveMode) return;
     let cancelled = false;
     void fetch('/api/settings').then(async response => {
       const payload = await response.json() as { data?: Partial<SettingsState> & { role?: string }; error?: string };
