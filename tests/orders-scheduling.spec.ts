@@ -17,9 +17,11 @@ test('agenda opcional, persistência e bloqueio de horários ocupados', async ({
   await expect(page.getByRole('status').getByText(/criada e agendada/)).toBeVisible();
 
   await page.goto('/agenda');
+  await page.getByRole('button', { name: 'Próximo dia' }).click();
   await page.getByLabel('Escolher data da agenda').fill(day);
   await expect(page.getByRole('button', { name: /10:30 · Atendimento no balcão/ })).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: 'Próximo dia' }).click();
   await page.getByLabel('Escolher data da agenda').fill(day);
   await expect(page.getByRole('button', { name: /10:30 · Atendimento no balcão/ })).toBeVisible();
 
@@ -33,4 +35,25 @@ test('agenda opcional, persistência e bloqueio de horários ocupados', async ({
   await second.getByRole('button', { name: 'Criar e agendar' }).click();
   await expect(page.getByRole('alert').getByText(/horário já está ocupado/)).toBeVisible();
   await expect(second).toBeVisible();
+});
+
+test('a ficha explica a aprovação antes de liberar a execução', async ({ page }) => {
+  await page.goto('/ordens');
+  await page.getByRole('row').filter({ hasText: 'OS-2026-1250' }).click();
+  await expect(page.getByRole('region', { name: 'Etapas do atendimento' })).toContainText('Aguardar a decisão do cliente');
+  await expect(page.getByRole('region', { name: 'Próximo passo da ordem de serviço' })).toContainText('aprovação reais');
+  await expect(page.getByRole('button', { name: 'Avançar para Em execução' })).toHaveCount(0);
+});
+
+test('orçamento discrimina vários itens e mostra o total a aprovar', async ({ page }) => {
+  await page.goto('/orcamentos');
+  await page.getByRole('button', { name: 'Novo orçamento' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('group', { name: 'Item 1' }).getByLabel('Descrição do serviço ou peça').fill('Troca da fonte');
+  await dialog.getByRole('group', { name: 'Item 1' }).getByLabel('Valor unitário (R$)').fill('150,00');
+  await dialog.getByRole('button', { name: 'Adicionar item' }).click();
+  await dialog.getByRole('group', { name: 'Item 2' }).getByLabel('Descrição do serviço ou peça').fill('Mão de obra');
+  await dialog.getByRole('group', { name: 'Item 2' }).getByLabel('Valor unitário (R$)').fill('100,00');
+  await expect(dialog.locator('.quote-total-preview strong')).toContainText('R$ 250,00');
+  await expect(dialog.getByText('O cliente verá a solicitação, o equipamento, cada item e valor, o desconto, o total, a validade e as condições.')).toBeVisible();
 });

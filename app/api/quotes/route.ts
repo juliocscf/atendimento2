@@ -3,11 +3,14 @@ import { getRequestContext } from '@/lib/supabase/request-context';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
   const { supabase, userId, membership } = await getRequestContext();
   if (!userId) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
   if (!membership) return NextResponse.json({ error: 'Complete your organization setup first.' }, { status: 409 });
-  const { data, error } = await supabase.from('quotes').select('id, service_order_id, version, status, valid_until, notes, subtotal_cents, discount_cents, total_cents, sent_at, approved_at, approval_channel, created_at, updated_at').eq('organization_id', membership.organization_id).order('updated_at', { ascending: false }).limit(100);
+  const serviceOrderId = new URL(request.url).searchParams.get('serviceOrderId');
+  let query = supabase.from('quotes').select('id, service_order_id, version, status, valid_until, notes, subtotal_cents, discount_cents, total_cents, sent_at, approved_at, approval_channel, created_at, updated_at').eq('organization_id', membership.organization_id);
+  if (serviceOrderId) query = query.eq('service_order_id', serviceOrderId);
+  const { data, error } = await query.order(serviceOrderId ? 'version' : 'updated_at', { ascending: false }).limit(serviceOrderId ? 10 : 100);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
 }
