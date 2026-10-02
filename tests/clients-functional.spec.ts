@@ -88,7 +88,7 @@ test('cadastra varios equipamentos no mesmo formulario e permite adicionar outro
   await expect(row.getByText('2 equipamentos')).toBeVisible();
   await row.getByRole('button', { name: 'Abrir ficha de Cliente com equipamentos' }).click();
   await expect(page.getByRole('heading', { name: 'Equipamentos (2)' })).toBeVisible();
-  await expect(page.getByText('Dell Latitude')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dell Latitude', exact: true })).toBeVisible();
   await expect(page.getByText('Lenovo ThinkCentre')).toBeVisible();
   await page.getByRole('button', { name: 'Editar cadastro' }).click();
   await page.getByRole('button', { name: 'Adicionar equipamento' }).click();
@@ -99,4 +99,21 @@ test('cadastra varios equipamentos no mesmo formulario e permite adicionar outro
   await page.reload();
   await page.getByRole('button', { name: 'Abrir ficha de Cliente com equipamentos' }).click();
   await expect(page.getByRole('heading', { name: 'Equipamentos (3)' })).toBeVisible();
+});
+
+
+test('mostra seleção de fotos no cadastro de equipamento', async ({ page }) => {
+  await page.goto('/equipamentos');
+  await page.getByRole('button', { name: 'Novo equipamento' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByText('Fotos do equipamento', { exact: true })).toBeVisible();
+  await dialog.getByLabel('Selecionar fotos do equipamento').setInputFiles({ name: 'frente.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') });
+  await expect(dialog.getByText('frente.png')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Remover foto frente.png' }).click();
+  await expect(dialog.getByText('frente.png')).toHaveCount(0);
+  await dialog.getByRole('combobox', { name: 'Cliente', exact: true }).selectOption('c0');
+  await dialog.getByLabel('Marca').fill('Dell');
+  await dialog.getByLabel('Modelo').fill('Latitude');
+  await dialog.getByRole('button', { name: 'Cadastrar equipamento' }).click();
+  await expect(page.getByRole('heading', { name: 'Dell Latitude', exact: true })).toBeVisible();
 });
