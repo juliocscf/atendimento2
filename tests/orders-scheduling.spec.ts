@@ -45,6 +45,24 @@ test('a ficha explica a aprovação antes de liberar a execução', async ({ pag
   await expect(page.getByRole('button', { name: 'Avançar para Em execução' })).toHaveCount(0);
 });
 
+test('permite voltar uma etapa, justificar e editar a solicitação', async ({ page }) => {
+  await page.goto('/ordens');
+  await page.getByRole('row').filter({ hasText: 'OS-2026-1250' }).click();
+  const drawer = page.locator('.order-drawer');
+  await drawer.getByRole('button', { name: 'Voltar para Diagnóstico' }).click();
+  await drawer.getByRole('button', { name: 'Confirmar retorno' }).click();
+  await expect(page.getByRole('alert').getByText(/motivo da volta/)).toBeVisible();
+  await drawer.getByLabel('Motivo da correção').fill('Corrigir dados do diagnóstico');
+  await drawer.getByRole('button', { name: 'Confirmar retorno' }).click();
+  await page.getByRole('row').filter({ hasText: 'OS-2026-1250' }).click();
+  await expect(page.locator('.order-drawer')).toContainText('Diagnóstico');
+  await page.locator('.order-drawer').getByRole('button', { name: 'Editar solicitação' }).click();
+  await page.locator('.order-drawer').getByLabel('Problema relatado').fill('Fonte não liga após queda de energia');
+  await page.locator('.order-drawer').getByRole('button', { name: 'Salvar alterações' }).click();
+  await page.getByRole('row').filter({ hasText: 'OS-2026-1250' }).click();
+  await expect(page.locator('.order-drawer')).toContainText('Fonte não liga após queda de energia');
+});
+
 test('orçamento discrimina vários itens e mostra o total a aprovar', async ({ page }) => {
   await page.goto('/orcamentos');
   await page.getByRole('button', { name: 'Novo orçamento' }).click();

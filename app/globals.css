@@ -294,3 +294,8 @@ kbd { color: #9da7b6; font: 10px/1 'Inter Variable', Inter, sans-serif; border: 
 .device-photo-input li button { border: 0; background: none; color: #72809d; cursor: pointer; }
 .device-photo-input p[role=alert] { color: #ae3944; font-size: 11px; }
 .device-photo-note { font-size: 11px; color: #60708e; }
+.order-correction-panel { border-bottom: 1px solid #edf0f4; padding-bottom: 18px; }
+.order-correction-panel > div:not(.section-label) { margin-top: 12px; }
+.order-correction-panel p { color: #657188; font-size: 11px; line-height: 1.5; margin: 0; }
+.order-correction-panel label { display: grid; gap: 6px; color: #596985; font-size: 11px; font-weight: 700; }
+.order-correction-panel input, .order-correction-panel select, .order-correction-panel textarea { width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid #dce3ef; border-radius: 7px; background: white; color: #263752; font: inherit; resize: vertical; }

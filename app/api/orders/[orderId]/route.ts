@@ -26,7 +26,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
   const { supabase, userId, membership } = await getRequestContext();
   if (!userId) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
   if (!membership) return NextResponse.json({ error: 'Complete your organization setup first.' }, { status: 409 });
-  const body = await request.json().catch(() => null) as { status?: string; note?: string } | null;
+  const body = await request.json().catch(() => null) as { status?: string; note?: string; action?: string; issue?: string; priority?: string; dueDate?: string | null; accessories?: string; deviceId?: string | null } | null;
+  if (body?.action === 'return') {
+    const { data, error } = await supabase.rpc('return_service_order', { p_order_id: orderId, p_reason: body.note?.trim() ?? '' });
+    return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ data });
+  }
+  if (body?.action === 'edit') {
+    if (!body.issue || !body.priority || (body.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(body.dueDate))) return NextResponse.json({ error: 'Dados da OS inválidos.' }, { status: 400 });
+    const { data, error } = await supabase.rpc('edit_service_order', { p_order_id: orderId, p_issue: body.issue, p_priority: body.priority, p_due_date: body.dueDate || null, p_accessories: body.accessories ?? '', p_device_id: body.deviceId || null });
+    return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ data });
+  }
   if (!body?.status || !statuses.includes(body.status as typeof statuses[number])) return NextResponse.json({ error: 'A valid target status is required.' }, { status: 400 });
   const { data, error } = await supabase.rpc('advance_service_order', { p_order_id: orderId, p_status: body.status, p_note: body.note?.trim() || null });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

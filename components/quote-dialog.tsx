@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { money, type Order } from '@/lib/demo';
 
@@ -26,9 +26,32 @@ export function QuoteDialog({ orders, initialOrderId, liveMode, close, onCreated
   const [validUntil, setValidUntil] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [basedOnVersion, setBasedOnVersion] = useState<number | null>(null);
   const order = orders.find(candidate => candidate.id === orderId);
   const subtotal = items.reduce((sum, item) => sum + (Math.round(Number(item.quantity.replace(',', '.')) * moneyToCents(item.unitPrice)) || 0), 0);
   const discountCents = Math.min(subtotal, Math.max(0, moneyToCents(discount) || 0));
+
+  useEffect(() => {
+    if (!liveMode || !orderId) return;
+    let active = true;
+    void (async () => {
+      try {
+        const listResponse = await fetch(`/api/quotes?serviceOrderId=${encodeURIComponent(orderId)}`);
+        const list = await listResponse.json() as { data?: Array<{ id: string; version: number }> };
+        if (!listResponse.ok || !list.data?.length) { if (active) setBasedOnVersion(null); return; }
+        const response = await fetch(`/api/quotes/${list.data[0].id}`);
+        const result = await response.json() as { data?: { version: number; discount_cents: number; valid_until: string | null; notes: string | null; items: Array<{ description: string; quantity: number; unit_price_cents: number }> } };
+        if (!active || !response.ok || !result.data) return;
+        const quote = result.data;
+        setBasedOnVersion(quote.version);
+        setItems(quote.items.map(item => ({ description: item.description, quantity: String(item.quantity), unitPrice: (item.unit_price_cents / 100).toFixed(2).replace('.', ',') })));
+        setDiscount((quote.discount_cents / 100).toFixed(2).replace('.', ','));
+        setValidUntil(quote.valid_until ?? '');
+        setNotes(quote.notes ?? '');
+      } catch { /* keep the blank form available */ }
+    })();
+    return () => { active = false; };
+  }, [liveMode, orderId]);
 
   function updateItem(index: number, change: Partial<Item>) {
     setItems(current => current.map((item, position) => position === index ? { ...item, ...change } : item));
@@ -55,7 +78,7 @@ export function QuoteDialog({ orders, initialOrderId, liveMode, close, onCreated
 
   return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && close()}>
     <section className="modal" role="dialog" aria-modal="true" aria-labelledby="quote-dialog-title"><header><div>
-      <span className="eyebrow">Nexo · proposta ao cliente</span><h2 id="quote-dialog-title">Preparar orçamento</h2>
+      <span className="eyebrow">Nexo · proposta ao cliente</span><h2 id="quote-dialog-title">{basedOnVersion ? `Revisar orçamento v${basedOnVersion}` : 'Preparar orçamento'}</h2>
       <p>Descreva cada serviço e peça. O cliente verá esta proposta antes de aprovar.</p>
     </div><button type="button" className="icon-button" aria-label="Fechar janela" onClick={close}><X size={20} /></button></header>
       <div className="modal-body"><form onSubmit={submit}>
@@ -73,8 +96,8 @@ export function QuoteDialog({ orders, initialOrderId, liveMode, close, onCreated
         <div className="form-grid"><label>Desconto (R$)<input inputMode="decimal" value={discount} onChange={event => setDiscount(event.target.value)} /></label></div>
         <label className="full-label">Condições mostradas ao cliente<textarea rows={3} value={notes} onChange={event => setNotes(event.target.value)} placeholder="Ex.: serviço em até 3 dias úteis; garantia de 90 dias para a peça substituída." /></label>
         <div className="quote-total-preview"><span>Subtotal <b>{money(subtotal)}</b></span><span>Desconto <b>{money(discountCents)}</b></span><strong>Total a aprovar <b>{money(subtotal - discountCents)}</b></strong></div>
-        <p className="quote-disclosure">O cliente verá a solicitação, o equipamento, cada item e valor, o desconto, o total, a validade e as condições.</p>
-        <div className="modal-footer"><button type="button" className="button secondary" onClick={close}>Cancelar</button><button className="button primary" disabled={saving}>{saving ? 'Salvando…' : 'Salvar rascunho'}</button></div>
+        <p className="quote-disclosure">{basedOnVersion ? 'Ao salvar, uma nova versão será criada. Confira e envie o novo link para aprovação.' : 'O cliente verá a solicitação, o equipamento, cada item e valor, o desconto, o total, a validade e as condições.'}</p>
+        <div className="modal-footer"><button type="button" className="button secondary" onClick={close}>Cancelar</button><button className="button primary" disabled={saving}>{saving ? 'Salvando…' : basedOnVersion ? 'Salvar nova versão' : 'Salvar rascunho'}</button></div>
       </form></div>
     </section>
   </div>;
