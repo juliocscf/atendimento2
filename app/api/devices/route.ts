@@ -15,11 +15,16 @@ export async function GET(request: Request) {
     .select('id, client_id, unit_id, code, kind, brand, model, serial, configuration, notes, status, created_at, updated_at')
     .eq('organization_id', membership.organization_id)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .order('id', { ascending: false });
 
   if (safeQuery) builder = builder.or(`code.ilike.%${safeQuery}%,brand.ilike.%${safeQuery}%,model.ilike.%${safeQuery}%,serial.ilike.%${safeQuery}%`);
-  const { data, error } = await builder;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const data = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data: batch, error } = await builder.range(offset, offset + 499);
+    if (error) return NextResponse.json({ error: 'Não foi possível carregar os registros.' }, { status: 500 });
+    data.push(...(batch ?? []));
+    if (!batch || batch.length < 500) break;
+  }
   return NextResponse.json({ data });
 }
 

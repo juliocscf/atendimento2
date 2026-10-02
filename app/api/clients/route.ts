@@ -13,72 +13,61 @@ export async function GET(request: Request) {
   const safeQuery = query?.replace(/[^\p{L}\p{N}@._+\- ]/gu, ' ').trim();
   let builder = supabase
     .from('clients')
-    .select('id, full_name, phone, email, tax_id, document_type, legal_name, trade_name, status, created_at, updated_at')
+    .select('id, full_name, phone, email, tax_id, document_type, legal_name, trade_name, notes, status, created_at, updated_at')
     .eq('organization_id', membership.organization_id)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .order('id', { ascending: false });
 
   if (safeQuery) builder = builder.or(`full_name.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`);
-  const { data, error } = await builder;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const data = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data: batch, error } = await builder.range(offset, offset + 499);
+    if (error) return NextResponse.json({ error: 'Não foi possível carregar os registros.' }, { status: 500 });
+    data.push(...(batch ?? []));
+    if (!batch || batch.length < 500) break;
+  }
   const clientIds = (data ?? []).map(client => client.id);
-  const { data: addresses } = clientIds.length ? await supabase.from('client_addresses').select('client_id, street, number, complement, neighborhood, city, state, postal_code').eq('organization_id', membership.organization_id).eq('is_primary', true).in('client_id', clientIds) : { data: [] };
-  const addressByClient = new Map((addresses ?? []).map(address => [address.client_id, address]));
+  const addressByClient = new Map();
+  for (let offset = 0; offset < clientIds.length; offset += 100) {
+    const { data: addresses, error } = await supabase.from('client_addresses').select('client_id, street, number, complement, neighborhood, city, state, postal_code').eq('organization_id', membership.organization_id).eq('is_primary', true).in('client_id', clientIds.slice(offset, offset + 100));
+    if (error) return NextResponse.json({ error: 'Não foi possível carregar os endereços.' }, { status: 500 });
+    for (const address of addresses ?? []) addressByClient.set(address.client_id, address);
+  }
   return NextResponse.json({ data: (data ?? []).map(client => ({ ...client, address: addressByClient.get(client.id) ?? null })) });
 }
 
-export async function POST(request: Request) {
+type ProfileBody = { id?: string; fullName?: string; phone?: string; email?: string; taxId?: string; documentType?: BrazilianDocumentType; legalName?: string; tradeName?: string; notes?: string; address?: Record<string, string> };
+
+async function save(request: Request, editing: boolean) {
   const { supabase, userId, membership } = await getRequestContext();
-  if (!userId) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
-  if (!membership) return NextResponse.json({ error: 'Complete your organization setup first.' }, { status: 409 });
-
-  const body = await request.json().catch(() => null) as { fullName?: string; phone?: string; email?: string; taxId?: string; documentType?: BrazilianDocumentType; legalName?: string; tradeName?: string; notes?: string; address?: { postalCode?: string; street?: string; number?: string; complement?: string; neighborhood?: string; city?: string; state?: string } } | null;
-  const documentType = body?.documentType === 'cnpj' ? 'cnpj' : 'cpf';
-  const taxId = onlyDigits(body?.taxId ?? '');
-  const fullName = body?.fullName?.trim() || body?.tradeName?.trim() || body?.legalName?.trim() || '';
-  const phone = body?.phone?.trim() ?? '';
-  if (fullName.length < 3 || phone.length < 8 || !isValidBrazilianDocument(documentType, taxId)) {
-    return NextResponse.json({ error: `Informe nome, telefone e um ${documentType.toUpperCase()} válido.` }, { status: 400 });
+  if (!userId) return NextResponse.json({ error: 'Autenticação necessária.' }, { status: 401 });
+  if (!membership) return NextResponse.json({ error: 'Conclua a configuração da organização.' }, { status: 409 });
+  if (!['gestor', 'atendimento'].includes(membership.role)) return NextResponse.json({ error: 'Sem permissão para editar clientes.' }, { status: 403 });
+  const body = await request.json().catch(() => null) as ProfileBody | null;
+  if (!body || ['fullName', 'phone', 'email', 'taxId', 'documentType', 'legalName', 'tradeName', 'notes'].some(key => body[key as keyof ProfileBody] !== undefined && typeof body[key as keyof ProfileBody] !== 'string')) return NextResponse.json({ error: 'Dados de cadastro inválidos.' }, { status: 400 });
+  if (editing && (typeof body.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.id))) return NextResponse.json({ error: 'Cliente inválido.' }, { status: 400 });
+  const documentType = body.documentType === 'cnpj' ? 'cnpj' : 'cpf';
+  const taxId = onlyDigits(body.taxId ?? '');
+  const fullName = body.fullName?.trim() ?? '';
+  const phone = body.phone?.trim() ?? '';
+  let legacyDocument = false;
+  if (editing) {
+    const { data: existing, error } = await supabase.from('clients').select('tax_id').eq('id', body.id!).eq('organization_id', membership.organization_id).maybeSingle();
+    if (error) return NextResponse.json({ error: 'Não foi possível consultar o cadastro.' }, { status: 500 });
+    if (!existing) return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 });
+    legacyDocument = !existing.tax_id && !taxId;
   }
-
-  const { data: existing } = await supabase.from('clients').select('id').eq('organization_id', membership.organization_id).eq('tax_id', taxId).maybeSingle();
-  if (existing) return NextResponse.json({ error: 'Já existe um cliente com este documento.' }, { status: 409 });
-
-  const { data, error } = await supabase
-    .from('clients')
-    .insert({
-      organization_id: membership.organization_id,
-      full_name: fullName,
-      phone,
-      email: body?.email?.trim() || null,
-      tax_id: taxId,
-      document_type: documentType,
-      legal_name: body?.legalName?.trim() || null,
-      trade_name: body?.tradeName?.trim() || null,
-      notes: body?.notes?.trim() || null,
-      created_by: userId,
-    })
-    .select('id, full_name, phone, email, tax_id, document_type, legal_name, trade_name, status, created_at')
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  const address = body?.address;
-  const hasAddress = Boolean(address && Object.values(address).some(value => value?.trim()));
-  if (hasAddress) {
-    const { error: addressError } = await supabase.from('client_addresses').insert({
-      organization_id: membership.organization_id,
-      client_id: data.id,
-      label: 'Principal',
-      street: address?.street?.trim() || 'Não informado',
-      number: address?.number?.trim() || null,
-      complement: address?.complement?.trim() || null,
-      neighborhood: address?.neighborhood?.trim() || null,
-      city: address?.city?.trim() || null,
-      state: address?.state?.trim() || null,
-      postal_code: onlyDigits(address?.postalCode ?? '') || null,
-      is_primary: true,
-    });
-    if (addressError) return NextResponse.json({ error: 'Cliente criado, mas não foi possível salvar o endereço.' }, { status: 500 });
-  }
-  return NextResponse.json({ data }, { status: 201 });
+  if (fullName.length < 3 || onlyDigits(phone).length < 8 || (!legacyDocument && !isValidBrazilianDocument(documentType, taxId))) return NextResponse.json({ error: 'Informe nome, telefone e documento válidos.' }, { status: 400 });
+  const email = body.email?.trim() ?? '';
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Informe um e-mail válido.' }, { status: 400 });
+  if (body.address && (typeof body.address !== 'object' || Array.isArray(body.address) || Object.values(body.address).some(value => typeof value !== 'string'))) return NextResponse.json({ error: 'Endereço inválido.' }, { status: 400 });
+  const address = { ...body.address, postalCode: onlyDigits(body.address?.postalCode ?? '') };
+  if (address.postalCode && address.postalCode.length !== 8) return NextResponse.json({ error: 'Informe um CEP com 8 dígitos.' }, { status: 400 });
+  if (body.address?.state && !/^[A-Z]{2}$/.test(body.address.state)) return NextResponse.json({ error: 'Informe uma UF válida.' }, { status: 400 });
+  const { data, error } = await supabase.rpc('save_client_profile', { p_organization_id: membership.organization_id, p_client_id: editing ? body.id : null, p_profile: { ...body, fullName, phone, email, documentType, taxId, address } });
+  if (error) return NextResponse.json({ error: error.code === '23505' ? 'Já existe um cliente com este documento.' : error.code === '42501' ? 'Sem permissão para salvar este cadastro.' : 'Não foi possível salvar o cliente. Nenhuma alteração foi gravada.' }, { status: error.code === '23505' ? 409 : error.code === '42501' ? 403 : 400 });
+  return NextResponse.json({ data }, { status: editing ? 200 : 201 });
 }
+
+export async function POST(request: Request) { return save(request, false); }
+export async function PATCH(request: Request) { return save(request, true); }

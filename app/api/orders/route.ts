@@ -14,11 +14,16 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const query = params.get('q')?.replace(/[^\p{L}\p{N}@._+\- ]/gu, ' ').trim();
   const status = params.get('status');
-  let builder = supabase.from('service_orders').select('id, number, client_id, device_id, unit_id, mode, status, priority, issue, accessories, due_date, amount_cents, paid_cents, assigned_to, created_by, created_at, updated_at').eq('organization_id', membership.organization_id).order('created_at', { ascending: false }).limit(100);
+  let builder = supabase.from('service_orders').select('id, number, client_id, device_id, unit_id, mode, status, priority, issue, accessories, due_date, amount_cents, paid_cents, assigned_to, created_by, created_at, updated_at').eq('organization_id', membership.organization_id).order('created_at', { ascending: false }).order('id', { ascending: false });
   if (query) builder = builder.or(`number.ilike.%${query}%,issue.ilike.%${query}%,accessories.ilike.%${query}%`);
   if (status && statuses.includes(status as typeof statuses[number])) builder = builder.eq('status', status);
-  const { data, error } = await builder;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const data = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data: batch, error } = await builder.range(offset, offset + 499);
+    if (error) return NextResponse.json({ error: 'Não foi possível carregar os registros.' }, { status: 500 });
+    data.push(...(batch ?? []));
+    if (!batch || batch.length < 500) break;
+  }
   return NextResponse.json({ data });
 }
 

@@ -210,3 +210,19 @@ kbd { color: #9da7b6; font: 10px/1 'Inter Variable', Inter, sans-serif; border: 
 .spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 620px) { .address-heading { align-items: flex-start; flex-direction: column; gap: 4px; } .address-hint { font-size: 9px; } }
+
+.client-filter-panel { padding: 24px; }
+.client-filter-panel .form-grid { margin-bottom: 16px; }
+.client-name-button { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; }
+.client-name-button:hover b { color: #3157e8; }
+.client-name-button:focus-visible { outline: 2px solid #3157e8; outline-offset: 4px; }
+.client-pagination, .client-detail-actions { display: flex; align-items: center; gap: 12px; padding: 18px; flex-wrap: wrap; }
+.client-detail-actions { padding: 0 0 20px; }
+.client-detail-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 0 0 24px; }
+.client-detail-fields dt { color: #7a89a7; font-size: 12px; margin-bottom: 6px; }
+.client-detail-fields dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.client-history { list-style: none; padding: 0; margin-bottom: 24px; }
+.client-history li { border-bottom: 1px solid #e7ecf5; padding: 12px 0; }
+.client-history small { display: block; margin-top: 6px; color: #7a89a7; }
+.client-mobile-button { width: 100%; text-align: left; color: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 600px) { .client-detail-fields { grid-template-columns: 1fr; } }
