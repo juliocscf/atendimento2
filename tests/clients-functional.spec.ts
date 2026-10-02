@@ -88,7 +88,7 @@ test('cadastra varios equipamentos no mesmo formulario e permite adicionar outro
   await expect(row.getByText('2 equipamentos')).toBeVisible();
   await row.getByRole('button', { name: 'Abrir ficha de Cliente com equipamentos' }).click();
   await expect(page.getByRole('heading', { name: 'Equipamentos (2)' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Dell Latitude', exact: true })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Dell Latitude' })).toBeVisible();
   await expect(page.getByText('Lenovo ThinkCentre')).toBeVisible();
   await page.getByRole('button', { name: 'Editar cadastro' }).click();
   await page.getByRole('button', { name: 'Adicionar equipamento' }).click();

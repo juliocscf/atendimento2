@@ -20,7 +20,7 @@ export function AppointmentDialog({ orders, liveMode, close, onCreated, notify }
   const [orderId, setOrderId] = useState(orders[0]?.id ?? '');
   const [mode, setMode] = useState<Mode>('Remoto');
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState('2026-09-29');
+  const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }));
   const [time, setTime] = useState('09:00');
   const [duration, setDuration] = useState('60');
   const [address, setAddress] = useState('');
@@ -35,7 +35,7 @@ export function AppointmentDialog({ orders, liveMode, close, onCreated, notify }
     if (!orderId || title.trim().length < 2 || Number(duration) <= 0) return notify('Informe OS, título e duração válidos.', true);
     setSaving(true);
     try {
-      const response = await fetch('/api/appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceOrderId: orderId, mode, title: title.trim(), startAt: `${date}T${time}:00`, durationMinutes: Number(duration), address: address.trim() || null, remoteTool: remoteTool.trim() || null, travelFeeCents: cents(travelFee), notes: notes.trim() || null }) });
+      const response = await fetch('/api/appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceOrderId: orderId, mode, title: title.trim(), startAt: `${date}T${time}:00-03:00`, durationMinutes: Number(duration), address: address.trim() || null, remoteTool: remoteTool.trim() || null, travelFeeCents: cents(travelFee), notes: notes.trim() || null }) });
       const result = await response.json() as { error?: string };
       if (!response.ok) return notify(result.error ?? 'Não foi possível criar o compromisso.', true);
       notify('Compromisso agendado com sucesso.');

@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const { supabase, userId, membership } = await getRequestContext();
   if (!userId) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
   if (!membership) return NextResponse.json({ error: 'Complete your organization setup first.' }, { status: 409 });
-  const body = await request.json().catch(() => null) as { clientId?: string; deviceId?: string | null; mode?: string; priority?: string; issue?: string; accessories?: string; dueDate?: string | null; amountCents?: number } | null;
+  const body = await request.json().catch(() => null) as { clientId?: string; deviceId?: string | null; mode?: string; priority?: string; issue?: string; accessories?: string; dueDate?: string | null; amountCents?: number; schedule?: { startAt?: string; durationMinutes?: number; address?: string } } | null;
   const clientId = body?.clientId?.trim() ?? '';
   const deviceId = body?.deviceId?.trim() || null;
   const mode = body?.mode ?? 'Balcão';
@@ -44,6 +44,29 @@ export async function POST(request: Request) {
   if (deviceId) {
     const { data: device } = await supabase.from('devices').select('id, client_id').eq('id', deviceId).eq('organization_id', membership.organization_id).maybeSingle();
     if (!device || device.client_id !== clientId) return NextResponse.json({ error: 'The selected device does not belong to this client.' }, { status: 400 });
+  }
+  if (body?.schedule) {
+    const { startAt, durationMinutes, address } = body.schedule;
+    const start = startAt ? new Date(startAt) : null;
+    if (!start || Number.isNaN(start.getTime()) || start.getTime() <= Date.now() || ![15, 30, 45, 60, 90, 120, 180, 240].includes(durationMinutes ?? 0)) {
+      return NextResponse.json({ error: 'Escolha uma data futura e uma duração válida para o agendamento.' }, { status: 400 });
+    }
+    if (mode === 'Domicílio' && !address?.trim()) {
+      return NextResponse.json({ error: 'Informe o endereço do atendimento domiciliar.' }, { status: 400 });
+    }
+    const { data, error } = await supabase.rpc('create_order_with_appointment', {
+      p_organization_id: membership.organization_id,
+      p_unit_id: membership.unit_id,
+      p_client_id: clientId,
+      p_device_id: deviceId,
+      p_mode: mode,
+      p_issue: issue,
+      p_start_at: start.toISOString(),
+      p_duration_minutes: durationMinutes,
+      p_address: address?.trim() || null,
+    });
+    if (error) return NextResponse.json({ error: error.code === '23P01' ? 'Este horário já está ocupado na sua agenda.' : error.message }, { status: error.code === '23P01' ? 409 : 400 });
+    return NextResponse.json({ data }, { status: 201 });
   }
   const { data, error } = await supabase.from('service_orders').insert({
     organization_id: membership.organization_id,

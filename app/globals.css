@@ -159,6 +159,14 @@ kbd { color: #9da7b6; font: 10px/1 'Inter Variable', Inter, sans-serif; border: 
 .modal header p { font-size: 12px; }
 .modal-step b { font-size: 12px; }
 .modal-step small, .mode-picker button small, .form-hint { font-size: 10px; }
+.schedule-toggle { display: flex; align-items: center; gap: 8px; margin: 17px 0 12px; color: #42516d; font-size: 12px; font-weight: 700; cursor: pointer; }
+.schedule-toggle input { width: 16px; height: 16px; accent-color: var(--blue); }
+.schedule-toggle svg { color: var(--blue); }
+.schedule-fields { padding: 15px; margin-bottom: 15px; background: #f8faff; border: 1px solid #e4eafa; border-radius: 9px; }
+.schedule-fields p { margin: 0 0 14px; color: #79869d; font-size: 11px; }
+.schedule-fields .form-grid { margin-bottom: 0; }
+.date-navigation input[type="date"] { width: 135px; padding: 7px; border: 1px solid var(--line); border-radius: 7px; color: #54627a; background: #fff; font: inherit; font-size: 11px; }
+.day-summary .summary-event { width: 100%; background: #fff; border-left: 0; border-right: 0; border-top: 0; text-align: left; cursor: pointer; }
 .mode-picker button b { font-size: 12px; }
 @media (max-width: 1180px) { .content { padding-left: 28px; padding-right: 28px; }.topbar { padding: 0 28px; }.metric-row { grid-template-columns: repeat(2, 1fr); }.bottom-grid { grid-template-columns: 1fr; }.device-grid { grid-template-columns: repeat(2, 1fr); }.hero-stat { width: 200px; } }
 @media (max-width: 860px) { .sidebar { position: fixed; left: -260px; transition: left .22s ease; box-shadow: 10px 0 30px rgba(16,30,64,.08); }.sidebar.open { left: 0; }.sidebar-close { display: inline-grid !important; }.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(16,26,50,.3); z-index: 40; }.sidebar-backdrop.visible { display: block; }.topbar { padding: 0 18px; gap: 12px; }.mobile-menu { display: inline-grid; }.mobile-brand { display: flex; align-items: center; gap: 7px; margin-right: 3px; }.mobile-brand b { font-size: 17px; }.global-search { width: auto; flex: 1; }.user-meta, .user-profile > svg { display: none; }.content { padding: 29px 18px 45px; }.page-heading { align-items: flex-start; }.page-heading h1 { font-size: 25px; }.heading-actions .ghost { display: none; }.agenda-layout { grid-template-columns: 1fr; }.day-summary { display: none; }.settings-layout { grid-template-columns: 1fr; }.settings-nav { flex-direction: row; overflow-x: auto; }.settings-nav button { flex: none; }.settings-nav button:not(.active) { background: white; } }
