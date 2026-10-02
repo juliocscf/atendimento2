@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ data: (data ?? []).map(client => ({ ...client, address: addressByClient.get(client.id) ?? null })) });
 }
 
-type ProfileBody = { id?: string; fullName?: string; phone?: string; email?: string; taxId?: string; documentType?: BrazilianDocumentType; legalName?: string; tradeName?: string; notes?: string; address?: Record<string, string> };
+type ProfileBody = { id?: string; fullName?: string; phone?: string; email?: string; taxId?: string; documentType?: BrazilianDocumentType; legalName?: string; tradeName?: string; notes?: string; address?: Record<string, string>; devices?: Array<{ kind: string; brand: string; model: string; serial?: string; notes?: string }> };
 
 async function save(request: Request, editing: boolean) {
   const { supabase, userId, membership } = await getRequestContext();
@@ -64,8 +64,15 @@ async function save(request: Request, editing: boolean) {
   const address = { ...body.address, postalCode: onlyDigits(body.address?.postalCode ?? '') };
   if (address.postalCode && address.postalCode.length !== 8) return NextResponse.json({ error: 'Informe um CEP com 8 dígitos.' }, { status: 400 });
   if (body.address?.state && !/^[A-Z]{2}$/.test(body.address.state)) return NextResponse.json({ error: 'Informe uma UF válida.' }, { status: 400 });
-  const { data, error } = await supabase.rpc('save_client_profile', { p_organization_id: membership.organization_id, p_client_id: editing ? body.id : null, p_profile: { ...body, fullName, phone, email, documentType, taxId, address } });
-  if (error) return NextResponse.json({ error: error.code === '23505' ? 'Já existe um cliente com este documento.' : error.code === '42501' ? 'Sem permissão para salvar este cadastro.' : 'Não foi possível salvar o cliente. Nenhuma alteração foi gravada.' }, { status: error.code === '23505' ? 409 : error.code === '42501' ? 403 : 400 });
+  const devices = body.devices ?? [];
+  if (!Array.isArray(devices) || devices.length > 10 || devices.some(device => !device || typeof device !== 'object' || ['kind', 'brand', 'model'].some(key => typeof device[key as keyof typeof device] !== 'string' || (device[key as keyof typeof device]?.trim().length ?? 0) < 2) || ['serial', 'notes'].some(key => device[key as keyof typeof device] !== undefined && typeof device[key as keyof typeof device] !== 'string'))) {
+    return NextResponse.json({ error: 'Informe tipo, marca e modelo de cada equipamento (até 10).' }, { status: 400 });
+  }
+  const profile = { ...body, fullName, phone, email, documentType, taxId, address };
+  const { data, error } = devices.length
+    ? await supabase.rpc('save_client_with_devices', { p_organization_id: membership.organization_id, p_unit_id: membership.unit_id, p_client_id: editing ? body.id : null, p_profile: profile, p_devices: devices.map(device => ({ kind: device.kind.trim(), brand: device.brand.trim(), model: device.model.trim(), serial: device.serial?.trim() ?? '', notes: device.notes?.trim() ?? '' })) })
+    : await supabase.rpc('save_client_profile', { p_organization_id: membership.organization_id, p_client_id: editing ? body.id : null, p_profile: profile });
+  if (error) return NextResponse.json({ error: error.code === '23505' ? 'Já existe um cliente com este documento.' : error.code === '42501' ? 'Sem permissão para salvar este cadastro.' : error.code === '22023' ? 'Confira os dados dos equipamentos.' : 'Não foi possível salvar o cliente e seus equipamentos. Nenhuma alteração foi gravada.' }, { status: error.code === '23505' ? 409 : error.code === '42501' ? 403 : 400 });
   return NextResponse.json({ data }, { status: editing ? 200 : 201 });
 }
 

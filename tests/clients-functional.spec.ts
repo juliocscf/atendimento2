@@ -62,3 +62,41 @@ test('cadastro com consulta CNPJ e ficha acessível no celular', async ({ page }
   await expect(page.getByRole('dialog').getByRole('heading', {name:'Empresa QA',exact:true})).toBeVisible();
   await expect(page.getByRole('dialog').getByText('Rua teste, 10, Centro, Jatai, GO')).toBeVisible();
 });
+
+
+test('cadastra varios equipamentos no mesmo formulario e permite adicionar outro na edicao', async ({ page }) => {
+  await page.goto('/clientes');
+  await page.getByRole('button', { name: 'Novo cliente' }).click();
+  await page.getByPlaceholder('000.000.000-00').fill('52998224725');
+  await page.getByLabel('Nome para atendimento').fill('Cliente com equipamentos');
+  await page.getByLabel('Telefone', { exact: true }).fill('11999999999');
+  await page.getByRole('button', { name: 'Adicionar equipamento' }).click();
+  let items = page.getByRole('group', { name: 'Equipamento 1' });
+  await items.getByLabel('Marca').fill('Dell');
+  await items.getByLabel('Modelo').fill('Latitude');
+  await items.getByLabel('Número de série').fill('SN-001');
+  await page.getByRole('button', { name: 'Adicionar equipamento' }).click();
+  items = page.getByRole('group', { name: 'Equipamento 2' });
+  await items.getByLabel('Tipo').selectOption('Desktop');
+  await items.getByLabel('Marca').fill('Lenovo');
+  await items.getByLabel('Modelo').fill('ThinkCentre');
+  await page.getByRole('button', { name: 'Adicionar equipamento' }).click();
+  await page.getByRole('button', { name: 'Remover equipamento 3' }).click();
+  await expect(page.getByText('2 de 10 adicionados')).toBeVisible();
+  await page.getByRole('button', { name: 'Cadastrar cliente', exact: true }).click();
+  const row = page.getByRole('row').filter({ has: page.getByRole('button', { name: 'Abrir ficha de Cliente com equipamentos' }) });
+  await expect(row.getByText('2 equipamentos')).toBeVisible();
+  await row.getByRole('button', { name: 'Abrir ficha de Cliente com equipamentos' }).click();
+  await expect(page.getByRole('heading', { name: 'Equipamentos (2)' })).toBeVisible();
+  await expect(page.getByText('Dell Latitude')).toBeVisible();
+  await expect(page.getByText('Lenovo ThinkCentre')).toBeVisible();
+  await page.getByRole('button', { name: 'Editar cadastro' }).click();
+  await page.getByRole('button', { name: 'Adicionar equipamento' }).click();
+  await page.getByRole('group', { name: 'Equipamento 1' }).getByLabel('Marca').fill('Apple');
+  await page.getByRole('group', { name: 'Equipamento 1' }).getByLabel('Modelo').fill('MacBook Air');
+  await page.getByRole('button', { name: 'Salvar alterações' }).click();
+  await expect(page.getByRole('heading', { name: 'Equipamentos (3)' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Abrir ficha de Cliente com equipamentos' }).click();
+  await expect(page.getByRole('heading', { name: 'Equipamentos (3)' })).toBeVisible();
+});

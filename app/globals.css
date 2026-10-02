@@ -226,3 +226,9 @@ kbd { color: #9da7b6; font: 10px/1 'Inter Variable', Inter, sans-serif; border: 
 .client-history small { display: block; margin-top: 6px; color: #7a89a7; }
 .client-mobile-button { width: 100%; text-align: left; color: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 10px; }
 @media (max-width: 600px) { .client-detail-fields { grid-template-columns: 1fr; } }
+
+.client-equipment-entry { position: relative; margin: 16px 0; padding: 20px 16px 6px; border: 1px solid #dce4f4; border-radius: 10px; min-width: 0; }
+.client-equipment-entry legend { padding: 0 5px; color: #354e8c; font-weight: 700; font-size: 12px; }
+.client-equipment-remove { position: absolute; top: 8px; right: 12px; }
+.client-add-equipment { margin-bottom: 20px; }
+@media (max-width: 600px) { .client-equipment-entry { padding-top: 44px; } }
