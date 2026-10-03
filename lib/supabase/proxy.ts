@@ -27,6 +27,7 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute =
     request.nextUrl.pathname === '/login' ||
     request.nextUrl.pathname.startsWith('/auth') ||
+    /^\/portal\/orcamento\/[^/]+\/?$/.test(request.nextUrl.pathname) ||
     request.nextUrl.pathname.startsWith('/api/');
 
   if (!data?.claims && !isPublicRoute) {
