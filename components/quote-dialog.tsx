@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { money, type Order } from '@/lib/demo';
 import { financialBreakdown, type QuoteItemType } from '@/lib/quote-finance';
+import { ServicePicker } from '@/components/service-picker';
 import { FinancialSummary } from '@/components/financial-summary';
 
 type Props = {
@@ -14,7 +15,7 @@ type Props = {
   onCreated: () => void;
   notify: (message: string, error?: boolean) => void;
 };
-type Item = { description: string; quantity: string; unitPrice: string; itemType: QuoteItemType; unitCost: string };
+type Item = { description: string; quantity: string; unitPrice: string; itemType: QuoteItemType; unitCost: string; serviceId?: string; serviceCode?: string; serviceName?: string };
 const emptyItem = (): Item => ({ description: '', quantity: '1', unitPrice: '', itemType: 'labor', unitCost: '' });
 const moneyToCents = (value: string) => {
   const amount = Number(value.replace(/\./g, '').replace(',', '.'));
@@ -47,11 +48,11 @@ export function QuoteDialog({ orders, initialOrderId, liveMode, close, onCreated
           return;
         }
         const response = await fetch(`/api/quotes/${list.data[0].id}`);
-        const result = await response.json() as { data?: { version: number; discount_cents: number; valid_until: string | null; notes: string | null; items: Array<{ description: string; quantity: number; unit_price_cents: number; item_type?: QuoteItemType; unit_cost_cents?: number | null }> } };
+        const result = await response.json() as { data?: { version: number; discount_cents: number; valid_until: string | null; notes: string | null; items: Array<{ description: string; quantity: number; unit_price_cents: number; item_type?: QuoteItemType; unit_cost_cents?: number | null; service_catalog_id?: string | null; service_code?: string | null; service_name?: string | null }> } };
         if (!active || !response.ok || !result.data) return;
         const quote = result.data;
         setBasedOnVersion(quote.version);
-        setItems(quote.items.map(item => ({ description: item.description, quantity: String(item.quantity), unitPrice: (item.unit_price_cents / 100).toFixed(2).replace('.', ','), itemType: item.item_type ?? 'unclassified', unitCost: item.unit_cost_cents == null ? '' : (item.unit_cost_cents / 100).toFixed(2).replace('.', ',') })));
+        setItems(quote.items.map(item => ({ description: item.description, quantity: String(item.quantity), unitPrice: (item.unit_price_cents / 100).toFixed(2).replace('.', ','), serviceId: item.service_catalog_id ?? undefined, serviceCode: item.service_code ?? undefined, serviceName: item.service_name ?? undefined, itemType: item.item_type ?? 'unclassified', unitCost: item.unit_cost_cents == null ? '' : (item.unit_cost_cents / 100).toFixed(2).replace('.', ',') })));
         setDiscount((quote.discount_cents / 100).toFixed(2).replace('.', ','));
         setValidUntil(quote.valid_until ?? '');
         setNotes(quote.notes ?? '');
@@ -75,7 +76,7 @@ export function QuoteDialog({ orders, initialOrderId, liveMode, close, onCreated
     try {
       const response = await fetch('/api/quotes', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ serviceOrderId: orderId, validUntil: validUntil || null, discountCents,
-          notes: notes.trim() || null, items: items.map(item => ({ description: item.description.trim(), quantity: Number(item.quantity.replace(',', '.')), unitPriceCents: moneyToCents(item.unitPrice), itemType: item.itemType, unitCostCents: item.itemType === 'part' && item.unitCost.trim() ? moneyToCents(item.unitCost) : null })) }) });
+          notes: notes.trim() || null, items: items.map(item => ({ description: item.description.trim(), quantity: Number(item.quantity.replace(',', '.')), serviceId: item.serviceId, serviceCode: item.serviceCode, serviceName: item.serviceName, unitPriceCents: moneyToCents(item.unitPrice), itemType: item.itemType, unitCostCents: item.itemType === 'part' && item.unitCost.trim() ? moneyToCents(item.unitCost) : null })) }) });
       const result = await response.json() as { data?: { version: number }; error?: string };
       if (!response.ok) return notify(result.error ?? 'Não foi possível criar o orçamento.', true);
       notify(`Orçamento v${result.data?.version ?? ''} salvo como rascunho. Confira e gere o link de aprovação na OS.`);
@@ -96,7 +97,8 @@ export function QuoteDialog({ orders, initialOrderId, liveMode, close, onCreated
         {order && <div className="quote-context"><b>Problema informado pelo cliente</b><span>{order.issue}</span></div>}
         <div className="quote-items-heading"><b>Serviços e peças a aprovar</b><button type="button" className="button secondary compact" onClick={() => setItems(current => [...current, emptyItem()])}><Plus size={14} /> Adicionar item</button></div>
         {items.map((item, index) => <div className="quote-edit-item" key={index} role="group" aria-label={`Item ${index + 1}`}>
-          <label className="full-label">Tipo do item<select value={item.itemType} onChange={event => updateItem(index, { itemType: event.target.value as QuoteItemType, unitCost: '' })}><option value="labor">Mão de obra</option><option value="part">Peça</option>{item.itemType === 'unclassified' && <option value="unclassified">Não classificado (histórico)</option>}</select></label>
+          <label className="full-label">Tipo do item<select value={item.itemType} onChange={event => updateItem(index, { itemType: event.target.value as QuoteItemType, unitCost: '', serviceId: undefined, serviceCode: undefined, serviceName: undefined })}><option value="labor">Mão de obra</option><option value="part">Peça</option>{item.itemType === 'unclassified' && <option value="unclassified">Não classificado (histórico)</option>}</select></label>
+          <>{item.itemType === 'labor' && <ServicePicker liveMode={liveMode} onSelect={service => updateItem(index, { serviceId: service.id, serviceCode: service.code, serviceName: service.name, description: service.description ? service.name + ' — ' + service.description : service.name, unitPrice: (service.default_price_cents / 100).toFixed(2).replace('.', ','), unitCost: '' })} />}{item.serviceCode && <div className="service-selected"><span>{item.serviceCode} · {item.serviceName}</span><button type="button" onClick={() => updateItem(index, { serviceId: undefined, serviceCode: undefined, serviceName: undefined })}>Desvincular serviço</button></div>}</>
           <label className="full-label">Descrição do serviço ou peça<input value={item.description} onChange={event => updateItem(index, { description: event.target.value })} placeholder={item.itemType === 'part' ? 'Ex.: Fonte de alimentação 500 W' : 'Ex.: Instalação da fonte e teste de estabilidade'} required /></label>
           <div className="form-grid"><label>Quantidade<input type="number" min="0.01" step="0.01" value={item.quantity} onChange={event => updateItem(index, { quantity: event.target.value })} required /></label>
             <label>Valor unitário (R$)<input inputMode="decimal" value={item.unitPrice} onChange={event => updateItem(index, { unitPrice: event.target.value })} placeholder="0,00" required /></label></div>
