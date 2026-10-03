@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, ClipboardCopy, FileText, RefreshCw } from 'lucide-react';
 import { money, type Order } from '@/lib/demo';
+import { financialBreakdown, itemTypeLabels, type FinancialItem } from '@/lib/quote-finance';
+import { FinancialSummary } from '@/components/financial-summary';
 
 type Quote = {
   id: string;
@@ -13,7 +15,7 @@ type Quote = {
   subtotal_cents: number;
   discount_cents: number;
   total_cents: number;
-  items: Array<{ id: string; description: string; quantity: number; unit_price_cents: number; total_cents: number }>;
+  items: Array<FinancialItem & { id: string; description: string; unit_price_cents: number }>;
 };
 
 export function OrderApprovalPanel({ order, liveMode, onCreateQuote, onAdvance, notify }: {
@@ -91,7 +93,8 @@ export function OrderApprovalPanel({ order, liveMode, onCreateQuote, onAdvance, 
     </div>}
     {quote && <div className="approval-quote"><div className="approval-quote-head"><b>Orçamento v{quote.version}</b><span>{quote.status === 'draft' ? 'Rascunho' : quote.status === 'sent' ? awaiting ? 'Aguardando cliente' : 'Pronto para envio' : quote.status === 'approved' ? 'Aprovado' : 'Requer revisão'}</span></div>
       <p>O cliente receberá o problema informado, o equipamento e os itens abaixo para decidir se autoriza o serviço.</p>
-      {quote.items.map(item => <div className="approval-item" key={item.id}><span>{item.description}<small>{item.quantity} × {money(item.unit_price_cents)}</small></span><b>{money(item.total_cents)}</b></div>)}
+      {quote.items.map(item => <div className="approval-item" key={item.id}><span>{item.description}<small>{itemTypeLabels[item.item_type ?? 'unclassified']} · {item.quantity} × {money(item.unit_price_cents)}</small></span><b>{money(item.total_cents)}</b></div>)}
+      <FinancialSummary breakdown={financialBreakdown(quote.items, quote.discount_cents)} />
       {quote.notes && <p><b>Condições:</b> {quote.notes}</p>}
       {quote.valid_until && <p>Validade: {new Date(`${quote.valid_until}T12:00:00`).toLocaleDateString('pt-BR')}</p>}
       {quote.discount_cents > 0 && <p>Subtotal {money(quote.subtotal_cents)} · Desconto {money(quote.discount_cents)}</p>}

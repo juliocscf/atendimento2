@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { financialBreakdown } from '@/lib/quote-finance';
 import { getRequestContext } from '@/lib/supabase/request-context';
 
 export const dynamic = 'force-dynamic';
@@ -11,9 +12,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ quo
   const { data, error } = await supabase.from('quotes').select('id, service_order_id, version, status, valid_until, notes, subtotal_cents, discount_cents, total_cents, sent_at, approved_at, approval_channel, created_at, updated_at').eq('id', quoteId).eq('organization_id', membership.organization_id).maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
-  const { data: items, error: itemsError } = await supabase.from('quote_items').select('id, description, quantity, unit_price_cents, total_cents, position').eq('quote_id', quoteId).eq('organization_id', membership.organization_id).order('position', { ascending: true });
+  const { data: items, error: itemsError } = await supabase.from('quote_items').select('*').eq('quote_id', quoteId).eq('organization_id', membership.organization_id).order('position', { ascending: true });
   if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 });
-  return NextResponse.json({ data: { ...data, items: items ?? [] } });
+  return NextResponse.json({ data: { ...data, items: items ?? [], financialBreakdown: financialBreakdown(items ?? [], data.discount_cents) } });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ quoteId: string }> }) {

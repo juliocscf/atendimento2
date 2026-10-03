@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { financialBreakdown, unclassifiedBreakdown } from '@/lib/quote-finance';
 import { getRequestContext } from '@/lib/supabase/request-context';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const query = params.get('q')?.replace(/[^\p{L}\p{N}@._+\- ]/gu, ' ').trim();
   const status = params.get('status');
-  let builder = supabase.from('service_orders').select('id, number, client_id, device_id, unit_id, mode, status, priority, issue, accessories, due_date, amount_cents, paid_cents, assigned_to, created_by, created_at, updated_at').eq('organization_id', membership.organization_id).order('created_at', { ascending: false }).order('id', { ascending: false });
+  let builder = supabase.from('service_orders').select('id, number, client_id, device_id, unit_id, mode, status, priority, issue, accessories, due_date, amount_cents, paid_cents, assigned_to, created_by, created_at, updated_at, quotes(version, status, total_cents, discount_cents, quote_items(*))').eq('organization_id', membership.organization_id).order('created_at', { ascending: false }).order('id', { ascending: false });
   if (query) builder = builder.or(`number.ilike.%${query}%,issue.ilike.%${query}%,accessories.ilike.%${query}%`);
   if (status && statuses.includes(status as typeof statuses[number])) builder = builder.eq('status', status);
   const data = [];
@@ -24,7 +25,11 @@ export async function GET(request: Request) {
     data.push(...(batch ?? []));
     if (!batch || batch.length < 500) break;
   }
-  return NextResponse.json({ data });
+  return NextResponse.json({ data: data.map(({ quotes, ...order }) => {
+    const approved = quotes.filter(quote => quote.status === 'approved').sort((a, b) => b.version - a.version)[0];
+    const breakdown = approved ? financialBreakdown(approved.quote_items, approved.discount_cents) : null;
+    return { ...order, financialBreakdown: breakdown && breakdown.totalCents === order.amount_cents ? breakdown : unclassifiedBreakdown(order.amount_cents) };
+  }) });
 }
 
 export async function POST(request: Request) {
