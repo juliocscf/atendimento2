@@ -24,8 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ qu
   if (!membership) return NextResponse.json({ error: 'Complete your organization setup first.' }, { status: 409 });
   const body = await request.json().catch(() => null) as { status?: string } | null;
   if (body?.status !== 'sent') return NextResponse.json({ error: 'A aprovação deve ser registrada pelo cliente no link da proposta.' }, { status: 400 });
-  const { data, error } = await supabase.from('quotes').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', quoteId).eq('organization_id', membership.organization_id).eq('status', 'draft').select('id, service_order_id, version, status, valid_until, notes, subtotal_cents, discount_cents, total_cents, sent_at, approved_at, approval_channel, updated_at').maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  if (!data) return NextResponse.json({ error: 'Somente um orçamento em rascunho pode ser colocado em aprovação.' }, { status: 409 });
+  const { data, error } = await supabase.rpc('send_quote_for_approval', { p_quote_id: quoteId });
+  if (error) return NextResponse.json({ error: error.message }, { status: error.code === '42501' ? 403 : 400 });
   return NextResponse.json({ data });
 }

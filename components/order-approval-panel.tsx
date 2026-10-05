@@ -18,11 +18,12 @@ type Quote = {
   items: Array<FinancialItem & { id: string; description: string; service_code?: string | null; unit_price_cents: number }>;
 };
 
-export function OrderApprovalPanel({ order, liveMode, onCreateQuote, onAdvance, notify }: {
+export function OrderApprovalPanel({ order, liveMode, onCreateQuote, onAdvance, onSent, notify }: {
   order: Order;
   liveMode: boolean;
   onCreateQuote: () => void;
   onAdvance: (note?: string) => void;
+  onSent?: () => void;
   notify: (message: string, error?: boolean) => void;
 }) {
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -57,8 +58,8 @@ export function OrderApprovalPanel({ order, liveMode, onCreateQuote, onAdvance, 
       const response = await fetch(`/api/quotes/${quote.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'sent' }) });
       const result = await response.json() as { error?: string };
       if (!response.ok) return notify(result.error ?? 'Não foi possível finalizar a proposta.', true);
-      await refresh();
-      notify('Proposta finalizada. Gere o link e envie ao cliente.');
+      notify('Orçamento finalizado. A OS agora aguarda a aprovação do cliente.');
+      if (onSent) onSent(); else window.location.reload();
     } catch { notify('Não foi possível conectar ao servidor.', true); }
     finally { setBusy(false); }
   }
