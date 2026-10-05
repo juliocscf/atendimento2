@@ -16,7 +16,12 @@ export function DeviceLabel({ device, clientName }: DeviceLabelProps) {
     void QRCode.toDataURL(url, { width: 220, margin: 1, errorCorrectionLevel: 'M' }).then(setQrCode);
   }, [device.id]);
 
-  function printLabel() { window.requestAnimationFrame(() => window.print()); }
+  function printLabel() {
+    const previousTitle = document.title;
+    document.title = device.code;
+    window.addEventListener('afterprint', () => { document.title = previousTitle; }, { once: true });
+    window.requestAnimationFrame(() => window.print());
+  }
   return <main className="label-page">
     <div className="label-toolbar"><Link href="/equipamentos">← Voltar para equipamentos</Link><button type="button" onClick={printLabel}>Imprimir etiqueta</button></div>
     <section className="device-label" aria-label={`Etiqueta do equipamento ${device.code}`}>
