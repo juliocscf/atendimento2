@@ -16,8 +16,9 @@ export function DeviceLabel({ device, clientName }: DeviceLabelProps) {
     void QRCode.toDataURL(url, { width: 220, margin: 1, errorCorrectionLevel: 'M' }).then(setQrCode);
   }, [device.id]);
 
+  function printLabel() { window.requestAnimationFrame(() => window.print()); }
   return <main className="label-page">
-    <div className="label-toolbar"><Link href="/equipamentos">← Voltar para equipamentos</Link><button type="button" onClick={() => window.print()}>Imprimir etiqueta</button></div>
+    <div className="label-toolbar"><Link href="/equipamentos">← Voltar para equipamentos</Link><button type="button" onClick={printLabel}>Imprimir etiqueta</button></div>
     <section className="device-label" aria-label={`Etiqueta do equipamento ${device.code}`}>
       <div className="device-label-brand"><span className="brand-mark small-mark">N</span><span><b>Nexo</b><small>gestão da assistência</small></span></div>
       <div className="device-label-content"><div><span className="label-caption">Equipamento</span><strong>{device.code}</strong><span className="label-kind">{device.kind}</span></div>{qrCode ? <img src={qrCode} alt="QR Code para abrir a ficha do equipamento" /> : <div className="qr-placeholder" aria-hidden="true" />}</div>
