@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import { CalendarDays, ChevronRight, Headphones, House, ShieldCheck, Store, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { CalendarDays, ChevronRight, Headphones, House, ScanLine, ShieldCheck, Store, X } from 'lucide-react';
 import { type Mode, type DemoData, hasConflict, nowLabel } from '@/lib/demo';
 import { useDemo } from '@/components/demo-provider';
 
@@ -18,6 +18,64 @@ const modeIcons = { Balcão: Store, Remoto: Headphones, Domicílio: House };
 const durationOptions = [15, 30, 45, 60, 90, 120, 180, 240];
 const todayInBrazil = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
+type BarcodeDetectorLike = { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>> };
+type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+declare global { interface Window { BarcodeDetector?: BarcodeDetectorConstructor } }
+
+function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['devices']; onFound: (device: DemoData['devices'][number]) => void; close: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const [error, setError] = useState('');
+  const [manualCode, setManualCode] = useState('');
+
+  function stop() {
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+  }
+
+  useEffect(() => {
+    let active = true;
+    async function start() {
+      if (!window.BarcodeDetector) { setError('Seu navegador não oferece leitura de QR Code pela câmera. Informe o código abaixo.'); return; }
+      if (!navigator.mediaDevices?.getUserMedia) { setError('A câmera não está disponível neste dispositivo. Informe o código abaixo.'); return; }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        if (!active) { stream.getTracks().forEach(track => track.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
+        const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        const scan = async () => {
+          if (!active || !videoRef.current) return;
+          try {
+            const result = await detector.detect(videoRef.current);
+            const value = result[0]?.rawValue?.trim();
+            if (value) {
+              const code = value.match(/(?:^|[/?#=])([A-Z][A-Z0-9-]{2,20})(?:$|[/?#&])/i)?.[1] ?? value;
+              const found = devices.find(device => device.code.toLowerCase() === code.toLowerCase());
+              if (found) { onFound(found); return; }
+              setError(`Nenhum equipamento com o código ${code} foi encontrado nesta unidade.`);
+            }
+          } catch { /* a câmera pode estar entre dois frames */ }
+          frameRef.current = requestAnimationFrame(() => { void scan(); });
+        };
+        void scan();
+      } catch { setError('Não foi possível acessar a câmera. Verifique a permissão ou informe o código manualmente.'); }
+    }
+    void start();
+    return () => { active = false; stop(); };
+  }, [devices, onFound]);
+
+  function findManual() {
+    const found = devices.find(device => device.code.toLowerCase() === manualCode.trim().toLowerCase());
+    if (found) onFound(found);
+    else setError('Código não encontrado. Confira a etiqueta e tente novamente.');
+  }
+
+  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && close()}><section className="modal qr-scanner-modal" role="dialog" aria-modal="true" aria-labelledby="qr-scanner-title"><header><div><span className="eyebrow">Nexo · equipamento</span><h2 id="qr-scanner-title">Ler QR Code</h2><p>Aponte a câmera para a etiqueta do equipamento.</p></div><button type="button" className="icon-button" aria-label="Fechar leitor" onClick={close}><X size={20} /></button></header><div className="modal-body"><div className="qr-camera-frame"><video ref={videoRef} muted playsInline aria-label="Câmera para leitura do QR Code" /><span className="qr-camera-guide" /></div>{error && <div className="auth-feedback error" role="alert">{error}</div>}<div className="qr-manual-entry"><label>Código visível na etiqueta<input value={manualCode} onChange={event => setManualCode(event.target.value.toUpperCase())} placeholder="Ex.: DLPQ" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); findManual(); } }} /></label><button type="button" className="button secondary" onClick={findManual} disabled={!manualCode.trim()}>Usar código</button></div><div className="modal-footer"><button type="button" className="button secondary" onClick={close}>Cancelar</button></div></div></section></div>;
+}
+
 export function NewOrderModal({ data, initialClientId = '', liveMode = false, onCreated, close, notify }: Props) {
   const { commit } = useDemo();
   const [mode, setMode] = useState<Mode>('Balcão');
@@ -30,7 +88,15 @@ export function NewOrderModal({ data, initialClientId = '', liveMode = false, on
   const [duration, setDuration] = useState(60);
   const [address, setAddress] = useState('');
   const [saving, setSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const filteredDevices = data.devices.filter(device => device.clientId === clientId);
+
+  const selectScannedDevice = useCallback((device: DemoData['devices'][number]) => {
+    setClientId(device.clientId);
+    setDeviceId(device.id);
+    setScannerOpen(false);
+    notify(`Equipamento ${device.code} identificado. Confira os dados e descreva o novo defeito.`);
+  }, [notify]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,7 +161,7 @@ export function NewOrderModal({ data, initialClientId = '', liveMode = false, on
           <option value="">Selecione</option>{data.clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
         </select></label><label>Equipamento<select value={deviceId} onChange={event => setDeviceId(event.target.value)}>
           <option value="">Sem equipamento vinculado</option>{filteredDevices.map(device => <option key={device.id} value={device.id}>{device.code} · {device.brand} {device.model}</option>)}
-        </select></label></div>
+        </select></label></div><button type="button" className="button secondary scan-equipment-button" onClick={() => setScannerOpen(true)}><ScanLine size={15} /> Ler QR Code do equipamento</button>
         <label className="full-label">Defeito relatado<textarea value={issue} onChange={event => setIssue(event.target.value)} placeholder="Ex.: notebook não liga desde ontem e faz um ruído ao conectar o carregador." rows={4} required minLength={8} /></label>
         <label className="schedule-toggle"><input type="checkbox" checked={scheduled} onChange={event => setScheduled(event.target.checked)} /><CalendarDays size={17} /> Agendar atendimento agora</label>
         {scheduled && <div className="schedule-fields"><p>O horário ficará reservado na sua agenda. Você poderá alterá-lo depois.</p>
@@ -108,6 +174,6 @@ export function NewOrderModal({ data, initialClientId = '', liveMode = false, on
         <div className="modal-footer"><button type="button" className="button secondary" onClick={close}>Cancelar</button>
           <button className="button primary" disabled={saving}>{saving ? 'Salvando…' : <>{scheduled ? 'Criar e agendar' : 'Criar atendimento'} <ChevronRight size={16} /></>}</button></div>
       </form></div>
-    </section>
+    </section>{scannerOpen && <EquipmentQrScanner devices={data.devices} onFound={selectScannedDevice} close={() => setScannerOpen(false)} />}
   </div>;
 }
