@@ -17,6 +17,8 @@ export async function GET(request: Request) {
   const userId = (claimsData?.claims as { sub?: string } | null)?.sub;
   if (claimsError || !userId) return NextResponse.redirect(new URL('/login?error=auth_callback', url.origin));
 
+  if (destination === '/cliente') return NextResponse.redirect(new URL(destination, url.origin));
+
   const { data: membership, error: membershipError } = await supabase
     .from('unit_memberships')
     .select('organization_id')
