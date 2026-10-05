@@ -9,7 +9,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ quo
   const { supabase, userId, membership } = await getRequestContext();
   if (!userId) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
   if (!membership) return NextResponse.json({ error: 'Complete your organization setup first.' }, { status: 409 });
-  const { data, error } = await supabase.from('quotes').select('id, service_order_id, version, status, valid_until, notes, subtotal_cents, discount_cents, total_cents, sent_at, approved_at, approval_channel, created_at, updated_at').eq('id', quoteId).eq('organization_id', membership.organization_id).maybeSingle();
+  const { data, error } = await supabase.from('quotes').select('id, service_order_id, version, status, valid_until, notes, subtotal_cents, discount_cents, total_cents, sent_at, approved_at, approval_channel, approval_method, approved_customer_name, approval_note, approval_evidence_url, created_at, updated_at').eq('id', quoteId).eq('organization_id', membership.organization_id).maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: 'Quote not found.' }, { status: 404 });
   const { data: items, error: itemsError } = await supabase.from('quote_items').select('*').eq('quote_id', quoteId).eq('organization_id', membership.organization_id).order('position', { ascending: true });
