@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Check, CircleDollarSign, Clock3, FileText, Laptop, RefreshCcw, ShieldCheck, Wrench } from 'lucide-react';
 import { money, statuses } from '@/lib/demo';
 import { publicStatusLabels, type ServiceOrderPortalData } from '@/lib/service-order-portal';
+import { PickupAuthorizationPortal } from '@/components/pickup-authorization-portal';
 
 function dateTime(value: string) {
   return new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -85,6 +86,8 @@ export function ServiceOrderPortal({ token, initialData }: { token: string; init
         <div className="tracking-section-title"><CircleDollarSign size={18} /><div><h2>Resumo financeiro</h2><p>Valores registrados nesta ordem de serviço.</p></div></div>
         <div><span>Total aprovado<strong>{money(data.total_cents)}</strong></span><span>Recebido<strong>{money(data.paid_cents)}</strong></span><span>Saldo pendente<strong>{money(data.balance_cents)}</strong></span></div>
       </section>}
+
+      <PickupAuthorizationPortal token={token} available={data.third_party_pickup_available} initialAuthorization={data.pickup_authorization} />
 
       <section className="tracking-timeline">
         <div className="tracking-section-title"><Clock3 size={18} /><div><h2>Histórico do atendimento</h2><p>Somente as mudanças de etapa são exibidas.</p></div></div>

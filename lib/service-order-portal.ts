@@ -1,4 +1,5 @@
 import type { Status } from '@/lib/demo';
+import type { PickupAuthorizationPublic } from '@/lib/pickup-authorization';
 
 export type ServiceOrderPortalEvent = {
   status: Status;
@@ -40,6 +41,8 @@ export type ServiceOrderPortalData = {
   balance_cents: number;
   events: ServiceOrderPortalEvent[];
   quote: ServiceOrderPortalQuote | null;
+  third_party_pickup_available: boolean;
+  pickup_authorization: PickupAuthorizationPublic | null;
 };
 
 export const publicStatusLabels: Record<Status, string> = {

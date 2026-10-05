@@ -21,7 +21,7 @@ O portal deverá apresentar somente informações autorizadas ao cliente. Dados 
 | 3. Administração do link | Concluída | Geração, renovação, cancelamento, cópia, abertura e QR Code disponíveis na OS. |
 | 4. Orçamento e financeiro | Concluída | Aprovação, proposta, total recebido e saldo integrados ao acompanhamento. |
 | 5. Compartilhamento e comprovante | Concluída | Mensagem pronta, QR Code e impressão do comprovante implementados. |
-| 6. Retirada por terceiros | Em desenvolvimento | Configuração geral com chave liga/desliga iniciada; cadastro, confirmação e registro da retirada serão as próximas entregas. |
+| 6. Retirada por terceiros | Concluída com envio assistido | Chave geral e bloqueio por OS, cadastro, código temporário, confirmação, cancelamento, conferência do CPF, retirada e auditoria implementados. O envio automático poderá substituir o envio manual posteriormente. |
 | 7. Área completa do cliente | Pendente | Evolução posterior com confirmação por telefone ou e-mail. |
 
 ## 2. Resultado esperado
@@ -235,7 +235,9 @@ Permitir que o cliente autorize outra pessoa a retirar o equipamento com confirm
 - Permitir que o gestor bloqueie o recurso em uma OS específica, mesmo quando a configuração geral estiver ativa.
 - Exibir a ação somente quando a OS estiver em **Pronto para entrega**.
 - Solicitar nome e CPF da pessoa autorizada.
-- Enviar um código de confirmação ao telefone ou e-mail cadastrado do cliente.
+- Gerar um código de confirmação com validade de 10 minutos e limite de três tentativas.
+- Disponibilizar o código apenas para gestor ou atendimento, com mensagem pronta para envio ao WhatsApp ou e-mail cadastrado do cliente.
+- Manter o envio assistido até a contratação de um provedor transacional; a automação futura não deverá alterar o fluxo de validação.
 - Registrar:
   - pessoa autorizada;
   - data e hora da autorização;

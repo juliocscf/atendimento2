@@ -53,6 +53,8 @@ select 1 / ((
   and value ? 'order_number'
   and value ? 'events'
   and value ? 'balance_cents'
+  and value ? 'third_party_pickup_available'
+  and value ? 'pickup_authorization'
   and not value ? 'serial'
   and not value ? 'actor_id'
   and not value ? 'metadata'

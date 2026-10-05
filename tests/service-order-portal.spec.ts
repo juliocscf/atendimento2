@@ -11,4 +11,11 @@ test('portal de acompanhamento é público e bloqueia tokens inválidos', async 
   const approval = await request.post(`/api/portal/orders/${invalidToken}/approve`, { maxRedirects: 0 });
   expect(approval.status()).toBe(400);
   expect(approval.headers().location).toBeUndefined();
+
+  const pickup = await request.post(`/api/portal/orders/${invalidToken}/pickup-authorization`, {
+    maxRedirects: 0,
+    data: { action: 'request', authorizedName: 'Pessoa Autorizada', cpf: '52998224725', deliveryChannel: 'whatsapp' },
+  });
+  expect(pickup.status()).toBe(400);
+  expect(pickup.headers().location).toBeUndefined();
 });
