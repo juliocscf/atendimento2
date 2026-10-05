@@ -32,6 +32,11 @@ export function OrderTrackingPanel({ orderId, orderNumber, liveMode, notify }: {
   }, [liveMode, orderId]);
 
   useEffect(() => {
+    const savedUrl = localStorage.getItem(`nexo:tracking:${orderId}`);
+    if (savedUrl) {
+      setUrl(savedUrl);
+      void QRCode.toDataURL(savedUrl, { width: 220, margin: 1, errorCorrectionLevel: 'M' }).then(setQrCode);
+    }
     const timer = window.setTimeout(() => { void load(); }, 0);
     return () => window.clearTimeout(timer);
   }, [load]);
@@ -47,6 +52,7 @@ export function OrderTrackingPanel({ orderId, orderNumber, liveMode, notify }: {
         return;
       }
       setUrl(result.data.url);
+      localStorage.setItem(`nexo:tracking:${orderId}`, result.data.url);
       setQrCode(await QRCode.toDataURL(result.data.url, { width: 220, margin: 1, errorCorrectionLevel: 'M' }));
       setState({ active: true, created_at: result.data.created_at, expires_at: result.data.expires_at, last_accessed_at: null });
       await navigator.clipboard.writeText(result.data.url).catch(() => undefined);
@@ -79,6 +85,7 @@ export function OrderTrackingPanel({ orderId, orderNumber, liveMode, notify }: {
       const result = await response.json() as { error?: string };
       if (!response.ok) { notify(result.error ?? 'Não foi possível cancelar o link.', true); return; }
       setState(null); setUrl(''); setQrCode('');
+      localStorage.removeItem(`nexo:tracking:${orderId}`);
       notify('Acesso de acompanhamento cancelado.');
     } finally {
       setBusy(false);

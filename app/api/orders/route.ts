@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { financialBreakdown, unclassifiedBreakdown } from '@/lib/quote-finance';
 import { getRequestContext } from '@/lib/supabase/request-context';
+import { createPortalToken, hashPortalToken } from '@/lib/supabase/portal-token';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,14 @@ export async function POST(request: Request) {
   const priority = body?.priority ?? 'Normal';
   const issue = body?.issue?.trim() ?? '';
   const amountCents = Number.isInteger(body?.amountCents) && (body?.amountCents ?? 0) >= 0 ? body?.amountCents ?? 0 : 0;
+  const origin = new URL(request.url).origin;
+  async function addTracking<T extends { id: string; number: string }>(order: T) {
+    const token = createPortalToken();
+    const { error: linkError } = await supabase.rpc('replace_service_order_portal_link', { p_order_id: order.id, p_token_hash: hashPortalToken(token) });
+    if (linkError) return { order, linkError };
+    const trackingUrl = `${origin}/acompanhar/${token}`;
+    return { order: { ...order, trackingUrl, receiptUrl: `${origin}/ordens/${order.id}/comprovante?acompanhamento=${encodeURIComponent(token)}` }, linkError: null };
+  }
   if (!clientId || !modes.includes(mode as typeof modes[number]) || !priorities.includes(priority as typeof priorities[number]) || issue.length < 8) {
     return NextResponse.json({ error: 'Client, mode, priority and a detailed issue are required.' }, { status: 400 });
   }
@@ -71,7 +80,9 @@ export async function POST(request: Request) {
       p_address: address?.trim() || null,
     });
     if (error) return NextResponse.json({ error: error.code === '23P01' ? 'Este horário já está ocupado na sua agenda.' : error.message }, { status: error.code === '23P01' ? 409 : 400 });
-    return NextResponse.json({ data }, { status: 201 });
+    const result = await addTracking(data as { id: string; number: string });
+    if (result.linkError) return NextResponse.json({ error: 'A OS foi criada, mas não foi possível preparar o acompanhamento. Abra a OS e tente novamente.' }, { status: 500 });
+    return NextResponse.json({ data: result.order }, { status: 201 });
   }
   const { data, error } = await supabase.from('service_orders').insert({
     organization_id: membership.organization_id,
@@ -87,5 +98,7 @@ export async function POST(request: Request) {
     created_by: userId,
   }).select('id, number, client_id, device_id, unit_id, mode, status, priority, issue, accessories, due_date, amount_cents, paid_cents, assigned_to, created_by, created_at, updated_at').single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ data }, { status: 201 });
+  const result = await addTracking(data);
+  if (result.linkError) return NextResponse.json({ error: 'A OS foi criada, mas não foi possível preparar o acompanhamento. Abra a OS e tente novamente.' }, { status: 500 });
+  return NextResponse.json({ data: result.order }, { status: 201 });
 }

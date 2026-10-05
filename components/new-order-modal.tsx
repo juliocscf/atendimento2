@@ -50,11 +50,13 @@ export function NewOrderModal({ data, initialClientId = '', liveMode = false, on
             dueDate: scheduled ? date : todayInBrazil(),
             ...(scheduled ? { schedule: { startAt: startAt.toISOString(), durationMinutes: duration, address: address.trim() } } : {}) }),
         });
-        const result = await response.json() as { data?: { number: string }; error?: string };
+        const result = await response.json() as { data?: { id: string; number: string; trackingUrl?: string; receiptUrl?: string }; error?: string };
         if (!response.ok) return notify(result.error ?? 'Não foi possível abrir a OS.', true);
+        if (result.data?.id && result.data.trackingUrl) localStorage.setItem(`nexo:tracking:${result.data.id}`, result.data.trackingUrl);
         notify(`${result.data?.number ?? 'OS'} criada${scheduled ? ' e agendada' : ''} com sucesso.`);
         onCreated?.();
         close();
+        if (result.data?.receiptUrl) window.open(result.data.receiptUrl, '_blank', 'noopener,noreferrer');
         return;
       }
 
