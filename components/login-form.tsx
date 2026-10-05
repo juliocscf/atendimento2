@@ -1,16 +1,16 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { hasSupabaseConfig } from '@/lib/supabase/env';
+import { getSafeNextPath } from '@/lib/supabase/safe-redirect';
 
 type Mode = 'login' | 'signup' | 'reset';
 
 function nextPath() {
   if (typeof window === 'undefined') return '/';
-  const next = new URLSearchParams(window.location.search).get('next');
-  return next?.startsWith('/') ? next : '/';
+  return getSafeNextPath(new URLSearchParams(window.location.search).get('next'));
 }
 
 export function LoginForm() {
@@ -22,6 +22,12 @@ export function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('error') === 'auth_callback') {
+      setError('Não foi possível validar o link de acesso. Solicite um novo link e tente novamente.');
+    }
+  }, []);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -52,21 +58,30 @@ export function LoginForm() {
     }
 
     if (mode === 'signup') {
+      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      callbackUrl.searchParams.set('next', nextPath());
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName }, emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { data: { full_name: fullName }, emailRedirectTo: callbackUrl.toString() },
       });
       setBusy(false);
       if (signUpError) return setError(signUpError.message);
-      if (data.session) return window.location.assign(nextPath());
+      if (data.session) return window.location.assign('/onboarding');
       return setMessage('Confira seu e-mail para confirmar o acesso.');
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (signInError) return setError('E-mail ou senha inválidos.');
-    const { data: membership } = await supabase.from('unit_memberships').select('organization_id').limit(1).maybeSingle();
+    const { data: membership, error: membershipError } = await supabase
+      .from('unit_memberships')
+      .select('organization_id')
+      .eq('user_id', signInData.user.id)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+    if (membershipError) return setError('Não foi possível verificar o acesso à unidade. Tente novamente.');
     window.location.assign(membership ? nextPath() : '/onboarding');
   }
 

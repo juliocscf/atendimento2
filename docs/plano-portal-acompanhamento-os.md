@@ -22,7 +22,7 @@ O portal deverá apresentar somente informações autorizadas ao cliente. Dados 
 | 4. Orçamento e financeiro | Concluída | Aprovação, proposta, total recebido e saldo integrados ao acompanhamento. |
 | 5. Compartilhamento e comprovante | Concluída | Mensagem pronta, QR Code e impressão do comprovante implementados. |
 | 6. Retirada por terceiros | Concluída com envio assistido | Chave geral e bloqueio por OS, cadastro, código temporário, confirmação, cancelamento, conferência do CPF, retirada e auditoria implementados. O envio automático poderá substituir o envio manual posteriormente. |
-| 7. Área completa do cliente | Pendente | Evolução posterior com confirmação por telefone ou e-mail. |
+| 7. Área completa do cliente | Em implementação | OTP por e-mail, sessão Supabase, área `/cliente`, ordens, equipamentos, saldos, encerramento global de sessões e solicitação assistida de alteração de contato preparados. A ativação do provedor de OTP por telefone e a aplicação da migração ainda dependem do ambiente Supabase. |
 
 ## 2. Resultado esperado
 

@@ -4,9 +4,26 @@ import { hasSupabaseConfig, supabasePublishableKey, supabaseUrl } from '@/lib/su
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const pathname = request.nextUrl.pathname;
+  const isApiRoute = pathname.startsWith('/api/');
+  const isPublicRoute =
+    pathname === '/login' ||
+    pathname === '/cliente' ||
+    pathname === '/auth/callback' ||
+    pathname === '/auth/signout' ||
+    pathname === '/auth/update-password' ||
+    /^\/portal\/orcamento\/[^/]+\/?$/.test(pathname) ||
+    /^\/api\/portal\/quotes\/[^/]+\/approve$/.test(pathname) ||
+    /^\/acompanhar\/[^/]+\/?$/.test(pathname) ||
+    /^\/api\/portal\/orders\/[^/]+\/approve$/.test(pathname) ||
+    /^\/api\/portal\/orders\/[^/]+\/pickup-authorization$/.test(pathname);
 
   if (!hasSupabaseConfig()) {
-    return response;
+    if (isPublicRoute || process.env.NODE_ENV !== 'production') return response;
+    if (isApiRoute) {
+      return NextResponse.json({ error: 'Authentication service is not configured.' }, { status: 503 });
+    }
+    return new NextResponse('Authentication service is not configured.', { status: 503 });
   }
 
   const supabase = createServerClient(supabaseUrl, supabasePublishableKey, {
@@ -24,17 +41,14 @@ export async function updateSession(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getClaims();
-  const isPublicRoute =
-    request.nextUrl.pathname === '/login' ||
-    request.nextUrl.pathname.startsWith('/auth') ||
-    /^\/portal\/orcamento\/[^/]+\/?$/.test(request.nextUrl.pathname) ||
-    /^\/acompanhar\/[^/]+\/?$/.test(request.nextUrl.pathname) ||
-    request.nextUrl.pathname.startsWith('/api/');
-
   if (!data?.claims && !isPublicRoute) {
+    if (isApiRoute) {
+      return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('next', request.nextUrl.pathname);
+    url.search = '';
+    url.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 
