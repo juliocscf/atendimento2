@@ -21,7 +21,7 @@ O portal deverá apresentar somente informações autorizadas ao cliente. Dados 
 | 3. Administração do link | Concluída | Geração, renovação, cancelamento, cópia, abertura e QR Code disponíveis na OS. |
 | 4. Orçamento e financeiro | Concluída | Aprovação, proposta, total recebido e saldo integrados ao acompanhamento. |
 | 5. Compartilhamento e comprovante | Concluída | Mensagem pronta, QR Code e impressão do comprovante implementados. |
-| 6. Retirada por terceiros | Pendente | Será desenvolvida após validação da primeira entrega. |
+| 6. Retirada por terceiros | Em desenvolvimento | Configuração geral com chave liga/desliga iniciada; cadastro, confirmação e registro da retirada serão as próximas entregas. |
 | 7. Área completa do cliente | Pendente | Evolução posterior com confirmação por telefone ou e-mail. |
 
 ## 2. Resultado esperado
@@ -226,6 +226,13 @@ Permitir que o cliente autorize outra pessoa a retirar o equipamento com confirm
 
 #### Desenvolvimento
 
+- Criar em **Configurações → Segurança** a chave **Permitir retirada por terceiros**.
+- Manter a chave desativada por padrão para novas assistências.
+- Permitir que somente gestores ativem ou desativem o recurso.
+- Registrar em auditoria quem alterou a configuração, a data e os valores anterior e novo.
+- Ocultar todas as ações de autorização quando o recurso estiver desativado.
+- Ao desativar o recurso, impedir novas autorizações e cancelar automaticamente as autorizações pendentes, mantendo o histórico das já utilizadas.
+- Permitir que o gestor bloqueie o recurso em uma OS específica, mesmo quando a configuração geral estiver ativa.
 - Exibir a ação somente quando a OS estiver em **Pronto para entrega**.
 - Solicitar nome e CPF da pessoa autorizada.
 - Enviar um código de confirmação ao telefone ou e-mail cadastrado do cliente.
@@ -240,6 +247,9 @@ Permitir que o cliente autorize outra pessoa a retirar o equipamento com confirm
 
 #### Critérios de conclusão
 
+- A funcionalidade permanece indisponível enquanto a chave geral estiver desligada.
+- Somente um gestor consegue alterar a chave e a mudança aparece na auditoria.
+- Desativar a chave impede novas autorizações sem apagar o histórico existente.
 - A autorização não é concluída sem validação do código.
 - A equipe consegue conferir a pessoa autorizada no momento da entrega.
 - A entrega fica registrada no histórico da OS.

@@ -16,6 +16,7 @@ type SettingsState = {
   timezone: string;
   conflicts: boolean;
   pendingBalance: boolean;
+  thirdPartyPickupEnabled: boolean;
 };
 
 const initialSettings: SettingsState = {
@@ -25,6 +26,7 @@ const initialSettings: SettingsState = {
   timezone: 'America/Sao_Paulo',
   conflicts: true,
   pendingBalance: true,
+  thirdPartyPickupEnabled: false,
 };
 
 function readStoredSettings(): SettingsState {
@@ -92,6 +94,7 @@ export function FunctionalSettingsView({ notify, reset, liveMode = false }: { no
     { id: 'notifications', label: 'Notificações', icon: Bell },
     { id: 'security', label: 'Segurança', icon: ShieldCheck },
   ];
+  const canManageThirdPartyPickup = !liveMode || role === 'gestor';
 
   return <div className="settings-layout">
     <div className="settings-nav">{tabs.map(item => { const Icon = item.icon; return <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={17} /> {item.label}</button>; })}</div>
@@ -100,7 +103,7 @@ export function FunctionalSettingsView({ notify, reset, liveMode = false }: { no
         {tab === 'unit' && <div className="settings-section"><span className="eyebrow">Identidade da operação</span><h2>Como sua equipe reconhece a assistência</h2><p>Essas informações aparecem em documentos e na navegação da equipe.</p><div className="form-grid"><label>Nome da assistência<input value={settings.organizationName} onChange={event => update('organizationName', event.target.value)} /></label><label>Unidade ativa<input value={settings.unitName} onChange={event => update('unitName', event.target.value)} /></label><label>Telefone principal<input value={settings.phone} onChange={event => update('phone', event.target.value)} /></label><label>Fuso horário<select value={settings.timezone} onChange={event => update('timezone', event.target.value)}><option value="America/Sao_Paulo">Brasília (GMT−3)</option><option value="America/Manaus">Manaus (GMT−4)</option><option value="America/Noronha">Fernando de Noronha (GMT−2)</option></select></label></div></div>}
         {tab === 'team' && <div className="settings-section"><span className="eyebrow">Equipe e permissões</span><h2>Seu acesso à assistência</h2><p>O acesso é controlado pelo seu vínculo ativo no banco de dados.</p><div className="team-card"><span className="avatar">{role.slice(0, 2).toUpperCase()}</span><div><b>Usuário autenticado</b><small>Perfil atual · {role}</small></div><span className="status-pill status-green"><span className="status-dot" />Ativo</span></div></div>}
         {tab === 'notifications' && <div className="settings-section"><span className="eyebrow">Preferências de operação</span><h2>O que a equipe vê primeiro</h2><Preference label="Alertar conflitos na agenda" description="Impedir confirmação sem tratar sobreposição de horários." checked={settings.conflicts} onChange={value => update('conflicts', value)} /><Preference label="Exigir justificativa ao entregar com saldo pendente" description="Registrar a decisão do gestor no histórico da OS." checked={settings.pendingBalance} onChange={value => update('pendingBalance', value)} /></div>}
-        {tab === 'security' && <div className="settings-section"><span className="eyebrow">Segurança</span><h2>Sessão protegida</h2><p>Sua sessão é autenticada pelo Supabase e as permissões são verificadas no servidor.</p><div className="security-card"><ShieldCheck size={20} /><div><b>Proteção ativa</b><small>Políticas de acesso por organização e unidade estão em vigor.</small></div></div></div>}
+        {tab === 'security' && <div className="settings-section"><span className="eyebrow">Segurança</span><h2>Sessão protegida</h2><p>Sua sessão é autenticada pelo Supabase e as permissões são verificadas no servidor.</p><div className="security-card"><ShieldCheck size={20} /><div><b>Proteção ativa</b><small>Políticas de acesso por organização e unidade estão em vigor.</small></div></div><Preference label="Permitir retirada por terceiros" description="Libera a autorização de outra pessoa para retirar o equipamento quando a OS estiver pronta para entrega." checked={settings.thirdPartyPickupEnabled} onChange={value => update('thirdPartyPickupEnabled', value)} disabled={!canManageThirdPartyPickup} />{!canManageThirdPartyPickup && <p className="settings-hint">Somente gestores podem alterar esta configuração.</p>}</div>}
         <OperationalHealth notify={notify} />
         <div className="settings-footer"><button className="button secondary" onClick={() => { reset(); setSettings(initialSettings); window.localStorage.removeItem(STORAGE_KEY); notify('Demonstração restaurada com sucesso.'); }}>Restaurar demonstração</button><button className="button primary" disabled={saving} onClick={() => void save()}>{saved ? <><Check size={17} /> Salvo</> : saving ? 'Salvando…' : 'Salvar alterações'}</button></div>
       </>}
@@ -108,6 +111,6 @@ export function FunctionalSettingsView({ notify, reset, liveMode = false }: { no
   </div>;
 }
 
-function Preference({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (value: boolean) => void }) {
-  return <div className="preference"><span><b>{label}</b><small>{description}</small></span><button type="button" className={`toggle ${checked ? 'on' : ''}`} aria-label={`${label} ${checked ? 'ativado' : 'desativado'}`} aria-pressed={checked} onClick={() => onChange(!checked)}><span /></button></div>;
+function Preference({ label, description, checked, onChange, disabled = false }: { label: string; description: string; checked: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
+  return <div className="preference"><span><b>{label}</b><small>{description}</small></span><button type="button" className={`toggle ${checked ? 'on' : ''}`} aria-label={`${label} ${checked ? 'ativado' : 'desativado'}`} aria-pressed={checked} onClick={() => onChange(!checked)} disabled={disabled}><span /></button></div>;
 }
