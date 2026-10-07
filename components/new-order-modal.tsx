@@ -23,6 +23,23 @@ type BarcodeDetectorLike = { detect: (source: HTMLVideoElement) => Promise<Array
 type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
 declare global { interface Window { BarcodeDetector?: BarcodeDetectorConstructor } }
 
+function findDeviceFromQrValue(value: string, devices: DemoData['devices']) {
+  const rawValue = value.trim();
+  try {
+    const url = new URL(rawValue, window.location.origin);
+    const equipmentMatch = url.pathname.match(/\/equipamentos\/([^/]+)/i);
+    const equipmentId = equipmentMatch?.[1] ? decodeURIComponent(equipmentMatch[1]) : '';
+    if (equipmentId) {
+      const byId = devices.find(device => device.id === equipmentId);
+      if (byId) return { device: byId, label: byId.code };
+    }
+  } catch { /* mantém o suporte a QR Codes que contenham somente o código */ }
+
+  const code = rawValue.match(/(?:^|[/?#=])([A-Z][A-Z0-9-]{2,20})(?:$|[/?#&])/i)?.[1] ?? rawValue;
+  const byCode = devices.find(device => device.code.toLowerCase() === code.toLowerCase());
+  return { device: byCode, label: code };
+}
+
 function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['devices']; onFound: (device: DemoData['devices'][number]) => void; close: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -53,10 +70,9 @@ function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['de
             const result = await detector.detect(videoRef.current);
             const value = result[0]?.rawValue?.trim();
             if (value) {
-              const code = value.match(/(?:^|[/?#=])([A-Z][A-Z0-9-]{2,20})(?:$|[/?#&])/i)?.[1] ?? value;
-              const found = devices.find(device => device.code.toLowerCase() === code.toLowerCase());
+              const { device: found, label } = findDeviceFromQrValue(value, devices);
               if (found) { onFound(found); return; }
-              setError(`Nenhum equipamento com o código ${code} foi encontrado nesta unidade.`);
+              setError(`Nenhum equipamento com o código ${label} foi encontrado nesta unidade.`);
             }
           } catch { /* a câmera pode estar entre dois frames */ }
           frameRef.current = requestAnimationFrame(() => { void scan(); });
