@@ -397,3 +397,5 @@ kbd { color: #9da7b6; font: 10px/1 'Inter Variable', Inter, sans-serif; border: 
 .payment-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e8edf5; } .payment-summary div { display: grid; gap: 3px; } .payment-summary span { color: #64748b; font-size: 11px; } .payment-summary b { color: #172033; font-size: 14px; } .payment-summary .payment-action { grid-column: 1 / -1; justify-self: start; border: 0; border-radius: 9px; background: #0f9f6e; color: #fff; padding: 10px 14px; font-weight: 700; cursor: pointer; } .payment-summary .payment-action:disabled { opacity: .55; cursor: not-allowed; }
 
 .client-name-button .person-cell > span:last-child { min-width: 0; } .client-name-button .person-cell b { white-space: normal; line-height: 1.25; max-width: 360px; }
+
+.clickable-row .person-cell b { display: -webkit-box; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; }
