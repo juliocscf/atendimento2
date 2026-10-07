@@ -290,6 +290,9 @@ kbd { color: #9da7b6; font: 10px/1 'Inter Variable', Inter, sans-serif; border: 
 .qr-camera-frame video { width: 100%; min-height: 300px; max-height: 420px; object-fit: cover; }
 .qr-camera-guide { position: absolute; width: min(240px, 72vw); aspect-ratio: 1; border: 3px solid #fff; border-radius: 14px; box-shadow: 0 0 0 999px rgba(15, 24, 43, .24); }
 .qr-scanner-tip { margin: 10px 0 0; color: #64748b; font-size: 12px; text-align: center; }
+.qr-native-capture { display: flex; justify-content: center; margin-top: 12px; }
+.qr-native-capture .button { gap: 7px; }
+.qr-native-help { margin: 6px auto 0; max-width: 350px; color: #7a879b; font-size: 11px; line-height: 1.45; text-align: center; }
 .qr-scanner-actions { min-height: 38px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
 .qr-zoom-control { display: inline-flex; align-items: center; gap: 8px; color: #52617a; font-size: 12px; font-weight: 700; }
 .qr-zoom-control input { width: 130px; accent-color: var(--blue); }
