@@ -18,6 +18,7 @@
     "@supabase/supabase-js": "2.117.2",
     "@tailwindcss/postcss": "4.3.3",
     "@types/qrcode": "^1.5.5",
+    "@zxing/browser": "^0.2.1",
     "lucide-react": "1.48.0",
     "next": "16.3.6",
     "qrcode": "^1.5.4",

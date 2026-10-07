@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
 import { CalendarDays, ChevronRight, Headphones, House, Lightbulb, ScanLine, ShieldCheck, Store, X } from 'lucide-react';
 import { type Mode, type DemoData, hasConflict, nowLabel } from '@/lib/demo';
 import { useDemo } from '@/components/demo-provider';
@@ -18,10 +19,6 @@ type Props = {
 const modeIcons = { Balcão: Store, Remoto: Headphones, Domicílio: House };
 const durationOptions = [15, 30, 45, 60, 90, 120, 180, 240];
 const todayInBrazil = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-
-type BarcodeDetectorLike = { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>> };
-type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
-declare global { interface Window { BarcodeDetector?: BarcodeDetectorConstructor } }
 
 function findDeviceFromQrValue(value: string, devices: DemoData['devices']) {
   const rawValue = value.trim();
@@ -43,14 +40,18 @@ function findDeviceFromQrValue(value: string, devices: DemoData['devices']) {
 function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['devices']; onFound: (device: DemoData['devices'][number]) => void; close: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const scanTimerRef = useRef<number | null>(null);
+  const scannerControlsRef = useRef<IScannerControls | null>(null);
+  const scannerReaderRef = useRef<BrowserQRCodeReader | null>(null);
+  const handledRef = useRef(false);
   const [error, setError] = useState('');
   const [manualCode, setManualCode] = useState('');
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
 
   function stop() {
-    if (scanTimerRef.current !== null) window.clearTimeout(scanTimerRef.current);
+    scannerControlsRef.current?.stop();
+    scannerControlsRef.current = null;
+    scannerReaderRef.current = null;
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
   }
@@ -58,34 +59,32 @@ function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['de
   useEffect(() => {
     let active = true;
     async function start() {
-      if (!window.BarcodeDetector) { setError('Seu navegador não oferece leitura de QR Code pela câmera. Informe o código abaixo.'); return; }
       if (!navigator.mediaDevices?.getUserMedia) { setError('A câmera não está disponível neste dispositivo. Informe o código abaixo.'); return; }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, aspectRatio: { ideal: 16 / 9 } }, audio: false });
-        if (!active) { stream.getTracks().forEach(track => track.stop()); return; }
+        const reader = new BrowserQRCodeReader();
+        scannerReaderRef.current = reader;
+        const controls = await reader.decodeFromConstraints(
+          { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, aspectRatio: { ideal: 16 / 9 } }, audio: false },
+          videoRef.current ?? undefined,
+          result => {
+            if (!active || handledRef.current || !result) return;
+            const value = result.getText().trim();
+            if (!value) return;
+            const { device: found, label } = findDeviceFromQrValue(value, devices);
+            if (found) { handledRef.current = true; onFound(found); return; }
+            setError(`Nenhum equipamento com o código ${label} foi encontrado nesta unidade.`);
+          },
+        );
+        if (!active) { controls.stop(); return; }
+        scannerControlsRef.current = controls;
+        const stream = videoRef.current?.srcObject as MediaStream | null;
         streamRef.current = stream;
-        const track = stream.getVideoTracks()[0];
+        const track = stream?.getVideoTracks()[0];
         const capabilities = track?.getCapabilities?.() as { focusMode?: string[]; torch?: boolean } | undefined;
         setTorchAvailable(Boolean(capabilities?.torch));
         if (capabilities?.focusMode?.includes('continuous')) {
-          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] } as unknown as MediaTrackConstraints).catch(() => undefined);
+          await track?.applyConstraints({ advanced: [{ focusMode: 'continuous' }] } as unknown as MediaTrackConstraints).catch(() => undefined);
         }
-        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-        const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-        const scan = async () => {
-          if (!active || !videoRef.current) return;
-          try {
-            const result = await detector.detect(videoRef.current);
-            const value = result[0]?.rawValue?.trim();
-            if (value) {
-              const { device: found, label } = findDeviceFromQrValue(value, devices);
-              if (found) { onFound(found); return; }
-              setError(`Nenhum equipamento com o código ${label} foi encontrado nesta unidade.`);
-            }
-          } catch { /* a câmera pode estar entre dois frames */ }
-          if (active) scanTimerRef.current = window.setTimeout(() => { void scan(); }, 120);
-        };
-        void scan();
       } catch { setError('Não foi possível acessar a câmera. Verifique a permissão ou informe o código manualmente.'); }
     }
     void start();
