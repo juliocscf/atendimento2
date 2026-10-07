@@ -25,6 +25,21 @@ export type ServiceOrderPortalQuote = {
   items: ServiceOrderPortalQuoteItem[];
 };
 
+export type ServiceOrderPortalPartsBlock = {
+  active: boolean;
+  description?: string | null;
+  expected_date?: string | null;
+  note?: string | null;
+  blocked_at?: string | null;
+  received_at?: string | null;
+};
+
+export type ServiceOrderPortalPartsEvent = {
+  action: 'parts_block' | 'parts_resume' | string | null;
+  description: string;
+  created_at: string;
+};
+
 export type ServiceOrderPortalData = {
   order_number: string;
   organization_name: string;
@@ -39,6 +54,8 @@ export type ServiceOrderPortalData = {
   total_cents: number;
   paid_cents: number;
   balance_cents: number;
+  parts_block: ServiceOrderPortalPartsBlock | null;
+  parts_events: ServiceOrderPortalPartsEvent[];
   events: ServiceOrderPortalEvent[];
   quote: ServiceOrderPortalQuote | null;
   third_party_pickup_available: boolean;
