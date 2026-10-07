@@ -23,7 +23,7 @@ export function DeviceLabelSheet({ devices }: { devices: LabelDevice[] }) {
   const [labelAdjustments, setLabelAdjustments] = useState<LabelAdjustment[]>(() => Array.from({ length: 30 }, emptyAdjustment));
   useEffect(() => {
     let active = true;
-    void Promise.all(devices.map(async device => [device.id, await QRCode.toDataURL(`${window.location.origin}/equipamentos/${device.id}/etiqueta`, { width: 160, margin: 0, errorCorrectionLevel: 'M' })] as const)).then(entries => { if (active) setCodes(Object.fromEntries(entries)); });
+    void Promise.all(devices.map(async device => [device.id, await QRCode.toDataURL(`${window.location.origin}/e/${encodeURIComponent(device.code)}`, { width: 160, margin: 2, errorCorrectionLevel: 'L' })] as const)).then(entries => { if (active) setCodes(Object.fromEntries(entries)); });
     return () => { active = false; };
   }, [devices]);
   useEffect(() => {

@@ -24,6 +24,12 @@ function findDeviceFromQrValue(value: string, devices: DemoData['devices']) {
   const rawValue = value.trim();
   try {
     const url = new URL(rawValue, window.location.origin);
+    const shortCodeMatch = url.pathname.match(/\/e\/([^/]+)/i);
+    const shortCode = shortCodeMatch?.[1] ? decodeURIComponent(shortCodeMatch[1]) : '';
+    if (shortCode) {
+      const byShortCode = devices.find(device => device.code.toLowerCase() === shortCode.toLowerCase());
+      if (byShortCode) return { device: byShortCode, label: byShortCode.code };
+    }
     const equipmentMatch = url.pathname.match(/\/equipamentos\/([^/]+)/i);
     const equipmentId = equipmentMatch?.[1] ? decodeURIComponent(equipmentMatch[1]) : '';
     if (equipmentId) {

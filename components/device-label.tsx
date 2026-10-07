@@ -12,9 +12,9 @@ type DeviceLabelProps = {
 export function DeviceLabel({ device, clientName }: DeviceLabelProps) {
   const [qrCode, setQrCode] = useState('');
   useEffect(() => {
-    const url = `${window.location.origin}/equipamentos/${device.id}/etiqueta`;
-    void QRCode.toDataURL(url, { width: 220, margin: 1, errorCorrectionLevel: 'M' }).then(setQrCode);
-  }, [device.id]);
+    const url = `${window.location.origin}/e/${encodeURIComponent(device.code)}`;
+    void QRCode.toDataURL(url, { width: 220, margin: 2, errorCorrectionLevel: 'L' }).then(setQrCode);
+  }, [device.id, device.code]);
 
   function printLabel() {
     const previousTitle = document.title;
