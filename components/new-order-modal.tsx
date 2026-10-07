@@ -81,7 +81,7 @@ export function NewOrderModal({ data, initialClientId = '', initialDeviceId = ''
   const { commit } = useDemo();
   const [mode, setMode] = useState<Mode>('Balcão');
   const [clientId, setClientId] = useState(initialClientId || data.clients[0]?.id || '');
-  const [deviceId, setDeviceId] = useState(initialDeviceId || data.devices.find(device => device.clientId === (initialClientId || data.clients[0]?.id))?.id ?? '');
+  const [deviceId, setDeviceId] = useState(initialDeviceId || (data.devices.find(device => device.clientId === (initialClientId || data.clients[0]?.id))?.id ?? ''));
   const [issue, setIssue] = useState('');
   const [scheduled, setScheduled] = useState(false);
   const [date, setDate] = useState(todayInBrazil);
