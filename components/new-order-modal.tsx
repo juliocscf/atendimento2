@@ -47,6 +47,8 @@ function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['de
   const [manualCode, setManualCode] = useState('');
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+  const [zoomRange, setZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   function stop() {
     scannerControlsRef.current?.stop();
@@ -80,8 +82,15 @@ function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['de
         const stream = videoRef.current?.srcObject as MediaStream | null;
         streamRef.current = stream;
         const track = stream?.getVideoTracks()[0];
-        const capabilities = track?.getCapabilities?.() as { focusMode?: string[]; torch?: boolean } | undefined;
+        const capabilities = track?.getCapabilities?.() as { focusMode?: string[]; torch?: boolean; zoom?: { min: number; max: number; step?: number } } | undefined;
         setTorchAvailable(Boolean(capabilities?.torch));
+        if (capabilities?.zoom) {
+          const range = { min: capabilities.zoom.min, max: capabilities.zoom.max, step: capabilities.zoom.step || 0.1 };
+          const initialZoom = Math.min(range.max, Math.max(range.min, range.min + (range.max - range.min) * 0.35));
+          setZoomRange(range);
+          setZoom(initialZoom);
+          await track?.applyConstraints({ advanced: [{ zoom: initialZoom }] } as unknown as MediaTrackConstraints).catch(() => undefined);
+        }
         if (capabilities?.focusMode?.includes('continuous')) {
           await track?.applyConstraints({ advanced: [{ focusMode: 'continuous' }] } as unknown as MediaTrackConstraints).catch(() => undefined);
         }
@@ -108,7 +117,15 @@ function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['de
     }
   }
 
-  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && close()}><section className="modal qr-scanner-modal" role="dialog" aria-modal="true" aria-labelledby="qr-scanner-title"><header><div><span className="eyebrow">Nexo · equipamento</span><h2 id="qr-scanner-title">Ler QR Code</h2><p>Aponte a câmera para a etiqueta do equipamento.</p></div><button type="button" className="icon-button" aria-label="Fechar leitor" onClick={close}><X size={20} /></button></header><div className="modal-body"><div className="qr-camera-frame"><video ref={videoRef} muted playsInline autoPlay aria-label="Câmera para leitura do QR Code" /><span className="qr-camera-guide" /></div><p className="qr-scanner-tip">Aproxime o celular até o QR preencher o quadrado e evite reflexos.</p><div className="qr-scanner-actions">{torchAvailable && <button type="button" className="button secondary compact" onClick={() => void toggleTorch}><Lightbulb size={15} /> {torchOn ? 'Desligar luz' : 'Ligar luz'}</button>}</div>{error && <div className="auth-feedback error" role="alert">{error}</div>}<div className="qr-manual-entry"><label>Código visível na etiqueta<input value={manualCode} onChange={event => setManualCode(event.target.value.toUpperCase())} placeholder="Ex.: DLPQ" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); findManual(); } }} /></label><button type="button" className="button secondary" onClick={findManual} disabled={!manualCode.trim()}>Usar código</button></div><div className="modal-footer"><button type="button" className="button secondary" onClick={close}>Cancelar</button></div></div></section></div>;
+  async function changeZoom(value: number) {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track || !zoomRange) return;
+    const nextZoom = Math.min(zoomRange.max, Math.max(zoomRange.min, value));
+    setZoom(nextZoom);
+    await track.applyConstraints({ advanced: [{ zoom: nextZoom }] } as unknown as MediaTrackConstraints).catch(() => undefined);
+  }
+
+  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && close()}><section className="modal qr-scanner-modal" role="dialog" aria-modal="true" aria-labelledby="qr-scanner-title"><header><div><span className="eyebrow">Nexo · equipamento</span><h2 id="qr-scanner-title">Ler QR Code</h2><p>Aponte a câmera para a etiqueta do equipamento.</p></div><button type="button" className="icon-button" aria-label="Fechar leitor" onClick={close}><X size={20} /></button></header><div className="modal-body"><div className="qr-camera-frame"><video ref={videoRef} muted playsInline autoPlay aria-label="Câmera para leitura do QR Code" /><span className="qr-camera-guide" /></div><p className="qr-scanner-tip">Aproxime o celular até o QR preencher o quadrado e evite reflexos.</p><div className="qr-scanner-actions">{torchAvailable && <button type="button" className="button secondary compact" onClick={() => void toggleTorch}><Lightbulb size={15} /> {torchOn ? 'Desligar luz' : 'Ligar luz'}</button>}{zoomRange && <label className="qr-zoom-control"><span>Zoom {zoom.toFixed(1)}×</span><input type="range" min={zoomRange.min} max={zoomRange.max} step={zoomRange.step} value={zoom} onChange={event => void changeZoom(Number(event.target.value))} aria-label="Ajustar zoom da câmera" /></label>}</div>{error && <div className="auth-feedback error" role="alert">{error}</div>}<div className="qr-manual-entry"><label>Código visível na etiqueta<input value={manualCode} onChange={event => setManualCode(event.target.value.toUpperCase())} placeholder="Ex.: DLPQ" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); findManual(); } }} /></label><button type="button" className="button secondary" onClick={findManual} disabled={!manualCode.trim()}>Usar código</button></div><div className="modal-footer"><button type="button" className="button secondary" onClick={close}>Cancelar</button></div></div></section></div>;
 }
 
 export function NewOrderModal({ data, initialClientId = '', initialDeviceId = '', liveMode = false, onCreated, close, notify }: Props) {
