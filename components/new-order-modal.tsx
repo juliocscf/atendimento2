@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { CalendarDays, ChevronRight, Headphones, House, ScanLine, ShieldCheck, Store, X } from 'lucide-react';
+import { CalendarDays, ChevronRight, Headphones, House, Lightbulb, ScanLine, ShieldCheck, Store, X } from 'lucide-react';
 import { type Mode, type DemoData, hasConflict, nowLabel } from '@/lib/demo';
 import { useDemo } from '@/components/demo-provider';
 
@@ -43,12 +43,14 @@ function findDeviceFromQrValue(value: string, devices: DemoData['devices']) {
 function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['devices']; onFound: (device: DemoData['devices'][number]) => void; close: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const frameRef = useRef<number | null>(null);
+  const scanTimerRef = useRef<number | null>(null);
   const [error, setError] = useState('');
   const [manualCode, setManualCode] = useState('');
+  const [torchAvailable, setTorchAvailable] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   function stop() {
-    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    if (scanTimerRef.current !== null) window.clearTimeout(scanTimerRef.current);
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
   }
@@ -59,9 +61,15 @@ function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['de
       if (!window.BarcodeDetector) { setError('Seu navegador não oferece leitura de QR Code pela câmera. Informe o código abaixo.'); return; }
       if (!navigator.mediaDevices?.getUserMedia) { setError('A câmera não está disponível neste dispositivo. Informe o código abaixo.'); return; }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, aspectRatio: { ideal: 16 / 9 } }, audio: false });
         if (!active) { stream.getTracks().forEach(track => track.stop()); return; }
         streamRef.current = stream;
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track?.getCapabilities?.() as { focusMode?: string[]; torch?: boolean } | undefined;
+        setTorchAvailable(Boolean(capabilities?.torch));
+        if (capabilities?.focusMode?.includes('continuous')) {
+          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] } as unknown as MediaTrackConstraints).catch(() => undefined);
+        }
         if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
         const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
         const scan = async () => {
@@ -75,7 +83,7 @@ function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['de
               setError(`Nenhum equipamento com o código ${label} foi encontrado nesta unidade.`);
             }
           } catch { /* a câmera pode estar entre dois frames */ }
-          frameRef.current = requestAnimationFrame(() => { void scan(); });
+          if (active) scanTimerRef.current = window.setTimeout(() => { void scan(); }, 120);
         };
         void scan();
       } catch { setError('Não foi possível acessar a câmera. Verifique a permissão ou informe o código manualmente.'); }
@@ -90,7 +98,18 @@ function EquipmentQrScanner({ devices, onFound, close }: { devices: DemoData['de
     else setError('Código não encontrado. Confira a etiqueta e tente novamente.');
   }
 
-  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && close()}><section className="modal qr-scanner-modal" role="dialog" aria-modal="true" aria-labelledby="qr-scanner-title"><header><div><span className="eyebrow">Nexo · equipamento</span><h2 id="qr-scanner-title">Ler QR Code</h2><p>Aponte a câmera para a etiqueta do equipamento.</p></div><button type="button" className="icon-button" aria-label="Fechar leitor" onClick={close}><X size={20} /></button></header><div className="modal-body"><div className="qr-camera-frame"><video ref={videoRef} muted playsInline aria-label="Câmera para leitura do QR Code" /><span className="qr-camera-guide" /></div>{error && <div className="auth-feedback error" role="alert">{error}</div>}<div className="qr-manual-entry"><label>Código visível na etiqueta<input value={manualCode} onChange={event => setManualCode(event.target.value.toUpperCase())} placeholder="Ex.: DLPQ" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); findManual(); } }} /></label><button type="button" className="button secondary" onClick={findManual} disabled={!manualCode.trim()}>Usar código</button></div><div className="modal-footer"><button type="button" className="button secondary" onClick={close}>Cancelar</button></div></div></section></div>;
+  async function toggleTorch() {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: !torchOn }] } as unknown as MediaTrackConstraints);
+      setTorchOn(current => !current);
+    } catch {
+      setError('A lanterna não está disponível neste dispositivo.');
+    }
+  }
+
+  return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && close()}><section className="modal qr-scanner-modal" role="dialog" aria-modal="true" aria-labelledby="qr-scanner-title"><header><div><span className="eyebrow">Nexo · equipamento</span><h2 id="qr-scanner-title">Ler QR Code</h2><p>Aponte a câmera para a etiqueta do equipamento.</p></div><button type="button" className="icon-button" aria-label="Fechar leitor" onClick={close}><X size={20} /></button></header><div className="modal-body"><div className="qr-camera-frame"><video ref={videoRef} muted playsInline autoPlay aria-label="Câmera para leitura do QR Code" /><span className="qr-camera-guide" /></div><p className="qr-scanner-tip">Aproxime o celular até o QR preencher o quadrado e evite reflexos.</p><div className="qr-scanner-actions">{torchAvailable && <button type="button" className="button secondary compact" onClick={() => void toggleTorch}><Lightbulb size={15} /> {torchOn ? 'Desligar luz' : 'Ligar luz'}</button>}</div>{error && <div className="auth-feedback error" role="alert">{error}</div>}<div className="qr-manual-entry"><label>Código visível na etiqueta<input value={manualCode} onChange={event => setManualCode(event.target.value.toUpperCase())} placeholder="Ex.: DLPQ" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); findManual(); } }} /></label><button type="button" className="button secondary" onClick={findManual} disabled={!manualCode.trim()}>Usar código</button></div><div className="modal-footer"><button type="button" className="button secondary" onClick={close}>Cancelar</button></div></div></section></div>;
 }
 
 export function NewOrderModal({ data, initialClientId = '', initialDeviceId = '', liveMode = false, onCreated, close, notify }: Props) {

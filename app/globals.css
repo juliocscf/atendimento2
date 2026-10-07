@@ -286,9 +286,11 @@ kbd { color: #9da7b6; font: 10px/1 'Inter Variable', Inter, sans-serif; border: 
 .manual-approval-confirm input { width: 16px !important; height: 16px; flex: none; margin-top: 1px; accent-color: var(--blue); }
 .scan-equipment-button { margin: -5px 0 15px; gap: 6px; }
 .qr-scanner-modal { width: min(520px, 100%); }
-.qr-camera-frame { position: relative; overflow: hidden; min-height: 250px; display: grid; place-items: center; background: #172033; border-radius: 10px; }
-.qr-camera-frame video { width: 100%; min-height: 250px; max-height: 330px; object-fit: cover; }
-.qr-camera-guide { position: absolute; width: 170px; height: 170px; border: 3px solid #fff; border-radius: 14px; box-shadow: 0 0 0 999px rgba(15, 24, 43, .24); }
+.qr-camera-frame { position: relative; overflow: hidden; min-height: 300px; display: grid; place-items: center; background: #172033; border-radius: 10px; }
+.qr-camera-frame video { width: 100%; min-height: 300px; max-height: 420px; object-fit: cover; }
+.qr-camera-guide { position: absolute; width: min(240px, 72vw); aspect-ratio: 1; border: 3px solid #fff; border-radius: 14px; box-shadow: 0 0 0 999px rgba(15, 24, 43, .24); }
+.qr-scanner-tip { margin: 10px 0 0; color: #64748b; font-size: 12px; text-align: center; }
+.qr-scanner-actions { min-height: 38px; display: flex; justify-content: center; align-items: center; margin-top: 8px; }
 .qr-manual-entry { display: flex; align-items: flex-end; gap: 9px; margin-top: 15px; }
 .qr-manual-entry label { flex: 1; }
 .qr-manual-entry .button { margin-bottom: 0; }
