@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const modes = ['Balcão', 'Remoto', 'Domicílio'] as const;
 const priorities = ['Normal', 'Alta', 'Urgente'] as const;
-const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Aguardando peça', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
+const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
 
 export async function GET(request: Request) {
   const { supabase, userId, membership } = await getRequestContext();
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const query = params.get('q')?.replace(/[^\p{L}\p{N}@._+\- ]/gu, ' ').trim();
   const status = params.get('status');
-  let builder = supabase.from('service_orders').select('id, number, client_id, device_id, unit_id, mode, status, priority, issue, accessories, due_date, amount_cents, paid_cents, assigned_to, created_by, created_at, updated_at, quotes(version, status, total_cents, discount_cents, quote_items(*))').eq('organization_id', membership.organization_id).order('created_at', { ascending: false }).order('id', { ascending: false });
+  let builder = supabase.from('service_orders').select('id, number, client_id, device_id, unit_id, mode, status, priority, issue, accessories, due_date, amount_cents, paid_cents, assigned_to, created_by, created_at, updated_at, parts_blocked, parts_description, parts_supplier, parts_expected_date, parts_note, parts_blocked_at, parts_received_at, quotes(version, status, total_cents, discount_cents, quote_items(*))').eq('organization_id', membership.organization_id).order('created_at', { ascending: false }).order('id', { ascending: false });
   if (query) builder = builder.or(`number.ilike.%${query}%,issue.ilike.%${query}%,accessories.ilike.%${query}%`);
   if (status && statuses.includes(status as typeof statuses[number])) builder = builder.eq('status', status);
   const data = [];
@@ -103,3 +103,4 @@ export async function POST(request: Request) {
   if (result.linkError) return NextResponse.json({ error: 'A OS foi criada, mas não foi possível preparar o acompanhamento. Abra a OS e tente novamente.' }, { status: 500 });
   return NextResponse.json({ data: result.order }, { status: 201 });
 }
+

@@ -1,12 +1,12 @@
 export const DEMO_DATE = '2026-09-28';
 export const STORAGE_KEY = 'atendimento-2:prototype:v1';
-export const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Aguardando peça', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
+export const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
 export type Status = typeof statuses[number];
 export type Mode = 'Balcão' | 'Remoto' | 'Domicílio';
 export type View = 'painel' | 'ordens' | 'clientes' | 'equipamentos' | 'agenda' | 'orcamentos' | 'servicos' | 'financeiro' | 'configuracoes';
 export type Client = { id: string; name: string; phone: string; email: string; address: string; taxId?: string; documentType?: 'cpf' | 'cnpj'; legalName?: string; tradeName?: string; notes?: string; addressFields?: { postalCode: string; street: string; number: string; complement: string; neighborhood: string; city: string; state: string } };
 export type Device = { id: string; clientId: string; code: string; brand: string; model: string; serial: string; kind: string; notes: string };
-export type Order = { financialBreakdown?: import('./quote-finance').FinancialBreakdown; createdAt?: string; id: string; number: string; clientId: string; deviceId: string; mode: Mode; status: Status; priority: string; technician: string; issue: string; due: string; amount: number; paid: number; accessories: string; history: { text: string; at: string }[]; contacts: { channel: string; text: string; at: string }[] };
+export type Order = { financialBreakdown?: import('./quote-finance').FinancialBreakdown; partsBlock?: { description: string; supplier: string; expectedDate: string; note: string; blockedAt: string; receivedAt?: string | null } | null; createdAt?: string; id: string; number: string; clientId: string; deviceId: string; mode: Mode; status: Status; priority: string; technician: string; issue: string; due: string; amount: number; paid: number; accessories: string; history: { text: string; at: string }[]; contacts: { channel: string; text: string; at: string }[] };
 export type Appointment = { id: string; orderId: string; date: string; time: string; duration: number; technician: string; title: string; mode: Mode; address: string };
 export type DemoData = { version: 1; clients: Client[]; devices: Device[]; orders: Order[]; appointments: Appointment[] };
 export const technicians = ['Rafael Costa', 'Camila Santos', 'Diego Martins'];
