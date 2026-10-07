@@ -75,6 +75,7 @@ export function Workspace({ view: initialView }: { view: View }) {
   const [liveError, setLiveError] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [orderClientId, setOrderClientId] = useState('');
+  const [orderDeviceId, setOrderDeviceId] = useState('');
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useEffect(() => { function shortcut(event: KeyboardEvent) { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); document.querySelector<HTMLInputElement>('[aria-label="Buscar no sistema"]')?.focus(); } if (event.key === 'Escape') setShortcutsOpen(false); } window.addEventListener('keydown', shortcut); return () => window.removeEventListener('keydown', shortcut); }, []);
   const [view, setView] = useState(initialView);
@@ -84,6 +85,14 @@ export function Workspace({ view: initialView }: { view: View }) {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [modal, setModal] = useState<'order' | 'client' | 'device' | 'quote' | 'payment' | 'appointment' | null>(null);
   const [quoteOrderId, setQuoteOrderId] = useState('');
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const deviceId = params.get('deviceId');
+    if (params.get('new') !== '1' || !deviceId) return;
+    setOrderClientId(params.get('clientId') ?? '');
+    setOrderDeviceId(deviceId);
+    setModal('order');
+  }, []);
   useEffect(() => {
     if (!liveMode) return;
     const supabase = createClient();
@@ -127,7 +136,7 @@ export function Workspace({ view: initialView }: { view: View }) {
   const device = (id: string) => resourceData.devices.find(d => d.id === id);
   function navigate(next: View) { setView(next); setMobileOpen(false); setSearch(''); window.history.replaceState(null, '', next === 'painel' ? '/' : `/${next}`); }
   function openOrder(order: Order) { setSelectedOrder(order); }
-  function onNew() { setOrderClientId(''); setModal('order'); }
+  function onNew() { setOrderClientId(''); setOrderDeviceId(''); setModal('order'); }
   return <div className="app-shell">
     <Sidebar active={view} onNavigate={navigate} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} reset={reset} orderCount={resourceData.orders.length} dataMode={liveResources ? 'live' : liveMode && liveLoading ? 'connecting' : 'demo'} />
     <div className="main-shell">
@@ -138,7 +147,7 @@ export function Workspace({ view: initialView }: { view: View }) {
     {selectedClient && <ClientDetails client={resourceData.clients.find(item => item.id === selectedClient.id) ?? selectedClient} data={resourceData} liveMode={liveMode} close={() => setSelectedClient(null)} notify={notify} onUpdated={() => { setSelectedClient(null); void refreshLiveResources(); }} onOrder={order => { setSelectedClient(null); openOrder(order); }} onNewOrder={client => { setSelectedClient(null); setOrderClientId(client.id); setModal('order'); }} />}
     {selectedOrder && <OrderDrawer order={selectedOrder} data={resourceData} liveMode={liveMode} onUpdated={() => void refreshLiveResources()} onOpenQuote={() => { setQuoteOrderId(selectedOrder.id); setSelectedOrder(null); setModal('quote'); }} close={() => setSelectedOrder(null)} notify={notify} />}
     {selectedAppointment && <AppointmentDrawer appointment={selectedAppointment} data={resourceData} liveMode={liveMode} onUpdated={() => void refreshLiveResources()} close={() => setSelectedAppointment(null)} notify={notify} />}
-    {modal === 'order' && <NewOrderModal initialClientId={orderClientId} data={resourceData} liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}{modal === 'client' && <NewClientModal liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}{modal === 'device' && <DeviceRegistrationModal data={resourceData} liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}{modal === 'quote' && <QuoteDialog orders={resourceData.orders} initialOrderId={quoteOrderId} liveMode={liveMode} onCreated={() => { void refreshLiveResources(); if (quoteOrderId) setSelectedOrder(resourceData.orders.find(order => order.id === quoteOrderId) ?? null); }} close={() => setModal(null)} notify={notify} />}{modal === 'payment' && <PaymentDialog orders={resourceData.orders} liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}{modal === 'appointment' && <AppointmentDialog orders={resourceData.orders} liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}
+    {modal === 'order' && <NewOrderModal initialClientId={orderClientId} initialDeviceId={orderDeviceId} data={resourceData} liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}{modal === 'client' && <NewClientModal liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}{modal === 'device' && <DeviceRegistrationModal data={resourceData} liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}{modal === 'quote' && <QuoteDialog orders={resourceData.orders} initialOrderId={quoteOrderId} liveMode={liveMode} onCreated={() => { void refreshLiveResources(); if (quoteOrderId) setSelectedOrder(resourceData.orders.find(order => order.id === quoteOrderId) ?? null); }} close={() => setModal(null)} notify={notify} />}{modal === 'payment' && <PaymentDialog orders={resourceData.orders} liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}{modal === 'appointment' && <AppointmentDialog orders={resourceData.orders} liveMode={liveMode} onCreated={() => void refreshLiveResources()} close={() => setModal(null)} notify={notify} />}
   </div>;
 }
 
@@ -175,3 +184,4 @@ function OrderExecutionPanel({ orderId, liveMode, notify }: { orderId: string; l
 function NewClientModal(props: { liveMode?: boolean; onCreated?: () => void; close: () => void; notify: (message: string, error?: boolean) => void }) { return <ClientRegistrationModal {...props} />; }
 
 function Modal({ title, description, close, children }: { title: string; description: string; close: () => void; children: React.ReactNode }) { return <div className="modal-backdrop" onMouseDown={event => event.target === event.currentTarget && close()}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><div><span className="eyebrow">Nexo · demonstração</span><h2 id="modal-title">{title}</h2><p>{description}</p></div><IconButton label="Fechar janela" onClick={close}><X size={20} /></IconButton></header><div className="modal-body">{children}</div></section></div>; }
+
