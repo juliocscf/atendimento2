@@ -50,6 +50,7 @@ export const publicStatusLabels: Record<Status, string> = {
   Diagnóstico: 'Em diagnóstico',
   'Aguardando aprovação': 'Aguardando sua aprovação',
   'Em execução': 'Serviço em andamento',
+  'Aguardando peça': 'Aguardando peça para continuar',
   'Em testes': 'Em testes finais',
   'Pronto para entrega': 'Pronto para retirada',
   Concluído: 'Equipamento entregue',

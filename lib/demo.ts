@@ -1,6 +1,6 @@
 export const DEMO_DATE = '2026-09-28';
 export const STORAGE_KEY = 'atendimento-2:prototype:v1';
-export const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
+export const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Aguardando peça', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
 export type Status = typeof statuses[number];
 export type Mode = 'Balcão' | 'Remoto' | 'Domicílio';
 export type View = 'painel' | 'ordens' | 'clientes' | 'equipamentos' | 'agenda' | 'orcamentos' | 'servicos' | 'financeiro' | 'configuracoes';

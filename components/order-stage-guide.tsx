@@ -7,6 +7,7 @@ const explanations: Record<Status, { title: string; detail: string }> = {
   Diagnóstico: { title: 'Descobrir o defeito e preparar a proposta', detail: 'Registre o serviço ou peça necessária, preço e condições. O cliente ainda não recebeu nada.' },
   'Aguardando aprovação': { title: 'Aguardar a decisão do cliente', detail: 'Envie o link da proposta e acompanhe a resposta. A execução só começa após a aprovação.' },
   'Em execução': { title: 'Realizar apenas o serviço autorizado', detail: 'Registre atividades e anexos enquanto executa o que o cliente aprovou.' },
+  'Aguardando peça': { title: 'Aguardar a chegada da peça', detail: 'A execução está pausada até a peça necessária chegar. Depois, retome os testes.' },
   'Em testes': { title: 'Verificar o resultado', detail: 'Teste o equipamento e confirme que o problema foi resolvido.' },
   'Pronto para entrega': { title: 'Combinar a retirada', detail: 'O equipamento está pronto. Confirme a entrega ao cliente antes de concluir.' },
   Concluído: { title: 'Atendimento finalizado', detail: 'O histórico e a proposta permanecem vinculados a esta OS.' },

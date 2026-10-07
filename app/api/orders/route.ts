@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const modes = ['Balcão', 'Remoto', 'Domicílio'] as const;
 const priorities = ['Normal', 'Alta', 'Urgente'] as const;
-const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
+const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Aguardando peça', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
 
 export async function GET(request: Request) {
   const { supabase, userId, membership } = await getRequestContext();

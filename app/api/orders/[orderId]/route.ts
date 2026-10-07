@@ -3,7 +3,7 @@ import { getRequestContext } from '@/lib/supabase/request-context';
 
 export const dynamic = 'force-dynamic';
 
-const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
+const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Aguardando peça', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await params;
