@@ -5,6 +5,7 @@ import type { Order } from '@/lib/demo';
 
 type PaymentDialogProps = {
   orders: Order[];
+  initialOrderId?: string;
   liveMode: boolean;
   close: () => void;
   onCreated: () => void;
@@ -20,8 +21,8 @@ function formatAmount(cents: number) {
   return (cents / 100).toFixed(2).replace('.', ',');
 }
 
-export function PaymentDialog({ orders, liveMode, close, onCreated, notify }: PaymentDialogProps) {
-  const [orderId, setOrderId] = useState(orders.find(order => order.amount > order.paid)?.id ?? orders[0]?.id ?? '');
+export function PaymentDialog({ orders, initialOrderId = '', liveMode, close, onCreated, notify }: PaymentDialogProps) {
+  const [orderId, setOrderId] = useState(initialOrderId || (orders.find(order => order.amount > order.paid)?.id ?? orders[0]?.id ?? ''));
   const selected = orders.find(order => order.id === orderId);
   const [amount, setAmount] = useState(selected ? formatAmount(Math.max(0, selected.amount - selected.paid)) : '');
   const [method, setMethod] = useState('pix');
