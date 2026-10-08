@@ -3,7 +3,7 @@ import { getRequestContext } from '@/lib/supabase/request-context';
 
 export const dynamic = 'force-dynamic';
 
-const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
+const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Em testes', 'Pronto para entrega', 'Concluído', 'Anulada'] as const;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await params;
@@ -30,6 +30,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
   if (body?.action === 'cancel') {
     if ((body.note?.trim().length ?? 0) < 5) return NextResponse.json({ error: 'Informe o motivo do cancelamento (mínimo de 5 caracteres).' }, { status: 400 });
     const { data, error } = await supabase.rpc('cancel_service_order', { p_order_id: orderId, p_reason: body.note!.trim() });
+    return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ data });
+  }
+  if (body?.action === 'annul') {
+    if ((body.note?.trim().length ?? 0) < 5) return NextResponse.json({ error: 'Informe o motivo da anulação (mínimo de 5 caracteres).' }, { status: 400 });
+    const { data, error } = await supabase.rpc('annul_completed_service_order', { p_order_id: orderId, p_reason: body.note!.trim() });
     return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ data });
   }
   if (body?.action === 'return') {

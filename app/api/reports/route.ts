@@ -6,7 +6,7 @@ type SupabaseClient = Awaited<ReturnType<typeof getRequestContext>>['supabase'];
 export const dynamic = 'force-dynamic';
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-const closedStatuses = new Set(['Concluído', 'Cancelada']);
+const closedStatuses = new Set(['Concluído', 'Cancelada', 'Anulada']);
 const money = (value: unknown) => Number(value ?? 0) || 0;
 const daysBetween = (start: string, end: string) => Math.max(0, (new Date(end).getTime() - new Date(start).getTime()) / 86400000);
 
