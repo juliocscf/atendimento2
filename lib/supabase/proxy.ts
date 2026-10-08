@@ -16,7 +16,9 @@ export async function updateSession(request: NextRequest) {
     /^\/api\/portal\/quotes\/[^/]+\/approve$/.test(pathname) ||
     /^\/acompanhar\/[^/]+\/?$/.test(pathname) ||
     /^\/api\/portal\/orders\/[^/]+\/approve$/.test(pathname) ||
-    /^\/api\/portal\/orders\/[^/]+\/pickup-authorization$/.test(pathname);
+    /^\/api\/portal\/orders\/[^/]+\/pickup-authorization$/.test(pathname) ||
+    /^\/cadastro\/[^/]+\/?$/.test(pathname) ||
+    /^\/api\/clients\/profile-link\/[^/]+\/?$/.test(pathname);
 
   if (!hasSupabaseConfig()) {
     if (isPublicRoute || process.env.NODE_ENV !== 'production') return response;
