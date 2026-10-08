@@ -18,8 +18,8 @@ export function ServiceOrderPortal({ token, initialData }: { token: string; init
   const [data, setData] = useState(initialData);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const currentIndex = statuses.indexOf(data.status);
-  const events = useMemo(() => data.events.filter(event => statuses.includes(event.status)), [data.events]);
+  const currentIndex = data.status === 'Cancelada' ? -1 : statuses.indexOf(data.status as typeof statuses[number]);
+  const events = useMemo(() => data.events.filter(event => statuses.includes(event.status as typeof statuses[number])), [data.events]);
   const partsBlock = data.parts_block;
   const partsEvents = data.parts_events ?? [];
 
@@ -59,12 +59,12 @@ export function ServiceOrderPortal({ token, initialData }: { token: string; init
         <p>Última atualização em {dateTime(data.updated_at)}</p>
       </section>
 
-      <div className="tracking-progress" aria-label={`Etapa atual: ${publicStatusLabels[data.status]}`}>
+      {data.status === 'Cancelada' ? <section className="tracking-error" role="status"><strong>Este atendimento foi cancelado pela assistência.</strong></section> : <div className="tracking-progress" aria-label={`Etapa atual: ${publicStatusLabels[data.status]}`}>
         {statuses.map((status, index) => <div className={index <= currentIndex ? 'done' : ''} key={status}>
           <span>{index < currentIndex ? <Check size={14} /> : index + 1}</span>
           <small>{publicStatusLabels[status]}</small>
         </div>)}
-      </div>
+      </div>}
 
       {partsBlock?.active && <section className="tracking-parts-alert" role="status">
         <div className="tracking-parts-icon"><Clock3 size={20} /></div>

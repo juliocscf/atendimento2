@@ -70,4 +70,5 @@ export const publicStatusLabels: Record<Status, string> = {
   'Em testes': 'Em testes finais',
   'Pronto para entrega': 'Pronto para retirada',
   Concluído: 'Equipamento entregue',
+  Cancelada: 'Atendimento cancelado',
 };

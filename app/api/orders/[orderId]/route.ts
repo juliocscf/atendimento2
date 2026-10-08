@@ -27,6 +27,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
   if (!userId) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
   if (!membership) return NextResponse.json({ error: 'Complete your organization setup first.' }, { status: 409 });
   const body = await request.json().catch(() => null) as { status?: string; note?: string; action?: string; issue?: string; priority?: string; dueDate?: string | null; accessories?: string; deviceId?: string | null; partsDescription?: string; partsSupplier?: string; partsExpectedDate?: string | null; partsNote?: string } | null;
+  if (body?.action === 'cancel') {
+    if ((body.note?.trim().length ?? 0) < 5) return NextResponse.json({ error: 'Informe o motivo do cancelamento (mínimo de 5 caracteres).' }, { status: 400 });
+    const { data, error } = await supabase.rpc('cancel_service_order', { p_order_id: orderId, p_reason: body.note!.trim() });
+    return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ data });
+  }
   if (body?.action === 'return') {
     const { data, error } = await supabase.rpc('return_service_order', { p_order_id: orderId, p_reason: body.note?.trim() ?? '' });
     return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ data });

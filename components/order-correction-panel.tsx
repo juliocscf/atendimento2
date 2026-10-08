@@ -20,9 +20,10 @@ export function OrderCorrectionPanel({ order, devices, liveMode, onUpdated, clos
   const [accessories, setAccessories] = useState(order.accessories || '');
   const [deviceId, setDeviceId] = useState(order.deviceId || '');
   const [saving, setSaving] = useState(false);
-  const index = statuses.indexOf(order.status);
+  const index = statuses.indexOf(order.status as typeof statuses[number]);
   const previous = index > 0 ? order.status === 'Concluído' && order.mode !== 'Balcão' ? 'Em testes' : statuses[index - 1] : null;
   const editable = order.status === 'Recebido' || order.status === 'Diagnóstico';
+  const cancellable = order.status !== 'Concluído' && order.status !== 'Cancelada';
 
   async function save(action: 'return' | 'edit') {
     if (action === 'return' && reason.trim().length < 5) return notify('Informe o motivo da volta (mínimo de 5 caracteres).', true);
@@ -45,12 +46,36 @@ export function OrderCorrectionPanel({ order, devices, liveMode, onUpdated, clos
     finally { setSaving(false); }
   }
 
+  async function cancelOrder() {
+    const reason = window.prompt('Informe o motivo do cancelamento (mínimo 5 caracteres):')?.trim() ?? '';
+    if (reason.length < 5) return notify('Informe um motivo com pelo menos 5 caracteres.', true);
+    if (!window.confirm(`Cancelar a ${order.number}? Esta ação ficará registrada no histórico.`)) return;
+    setSaving(true);
+    try {
+      if (liveMode) {
+        const response = await fetch(`/api/orders/${order.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', note: reason }) });
+        const result = await response.json() as { error?: string };
+        if (!response.ok) return notify(result.error ?? 'Não foi possível cancelar a OS.', true);
+        notify(`OS ${order.number} cancelada.`);
+        onUpdated?.();
+        close();
+      } else {
+        onDemoChange({ status: 'Cancelada' }, `OS cancelada. Motivo: ${reason}`);
+        notify(`OS ${order.number} cancelada.`);
+        close();
+      }
+    } catch { notify('Não foi possível conectar ao servidor.', true); }
+    finally { setSaving(false); }
+  }
+
   return <section className="drawer-section order-correction-panel" aria-label="Corrigir ordem de serviço">
     <div className="section-label">Corrigir atendimento</div>
     {mode === 'none' && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
       {previous && <button className="button secondary compact" onClick={() => setMode('return')}>Voltar para {previous}</button>}
       {editable && <button className="button secondary compact" onClick={() => setMode('edit')}>Editar solicitação</button>}
-      {!editable && <small>Para alterar problema ou equipamento, volte até Diagnóstico.</small>}
+      {cancellable && <button className="button secondary compact" onClick={() => void cancelOrder()} disabled={saving}>Cancelar OS</button>}
+      {!editable && cancellable && <small>Para alterar problema ou equipamento, volte até Diagnóstico.</small>}
+      {!cancellable && <small>Esta OS está encerrada e não possui novas ações operacionais.</small>}
     </div>}
     {mode === 'return' && <div style={{ display: 'grid', gap: 10 }}>
       <p>Retornar de <b>{order.status}</b> para <b>{previous}</b>.</p>

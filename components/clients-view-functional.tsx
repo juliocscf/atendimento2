@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ChevronRight, Laptop, Link2, ListFilter, X } from 'lucide-react';
-import { type Client, type Device, type Order, dateLabel, initials, normalize } from '@/lib/demo';
+import { type Client, type Device, type Order, dateLabel, initials, isClosedStatus, normalize } from '@/lib/demo';
 import { ClientRegistrationModal } from './client-registration-modal';
 
 export function clientOrders(orders: Order[], clientId: string) {
@@ -25,7 +25,7 @@ export function ClientsView({ data, search, liveMode, liveLoading, loadError, on
     const count = data.devices.filter(device => device.clientId === client.id).length;
     return (!q || [client.name, client.phone, client.email, client.taxId ?? '', client.legalName ?? '', client.tradeName ?? ''].some(value => normalize(value).includes(q) || (!!search.replace(/\D/g, '') && value.replace(/\D/g, '').includes(search.replace(/\D/g, '')))))
       && (person === 'all' || (client.documentType ?? 'cpf') === person)
-      && (activity === 'all' || (activity === 'new' ? !orders.length : activity === 'ongoing' ? orders.some(order => order.status !== 'Concluído') : orders.length > 0 && orders.every(order => order.status === 'Concluído')))
+      && (activity === 'all' || (activity === 'new' ? !orders.length : activity === 'ongoing' ? orders.some(order => !isClosedStatus(order.status)) : orders.length > 0 && orders.every(order => order.status === 'Concluído')))
       && (equipment === 'all' || (equipment === 'with' ? count > 0 : count === 0));
   }).sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name, 'pt-BR') : sort === 'equipment' ? data.devices.filter(d => d.clientId === b.id).length - data.devices.filter(d => d.clientId === a.id).length : (clientOrders(data.orders, b.id)[0]?.createdAt ?? '').localeCompare(clientOrders(data.orders, a.id)[0]?.createdAt ?? ''));
   const pages = Math.max(1, Math.ceil(clients.length / 20));
@@ -33,7 +33,7 @@ export function ClientsView({ data, search, liveMode, liveLoading, loadError, on
   const visible = clients.slice((currentPage - 1) * 20, currentPage * 20);
   const active = person !== 'all' || activity !== 'all' || equipment !== 'all';
   function clear() { setPerson('all'); setActivity('all'); setEquipment('all'); setPage(1); }
-  const status = (client: Client) => { const orders = clientOrders(data.orders, client.id); return !orders.length ? 'Novo' : orders.some(order => order.status !== 'Concluído') ? 'Em atendimento' : 'Sem atendimento aberto'; };
+  const status = (client: Client) => { const orders = clientOrders(data.orders, client.id); return !orders.length ? 'Novo' : orders.some(order => !isClosedStatus(order.status)) ? 'Em atendimento' : 'Sem atendimento aberto'; };
   return <div className="view-stack">
     <div className="list-toolbar"><span>{liveLoading ? 'Carregando clientes…' : `${clients.length} ${clients.length === 1 ? 'cliente cadastrado' : 'clientes cadastrados'}`}</span><div><button className="button secondary" onClick={() => onProfileLink()} disabled={!liveMode || Boolean(loadError) || liveLoading}><Link2 size={16} /> Link de cadastro</button><button className="button secondary" aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}><ListFilter size={16} /> Filtrar{active ? ' •' : ''}</button><button className="button primary" onClick={onNew} disabled={Boolean(loadError) || liveLoading}>+ Novo cliente</button></div></div>
     {showFilters && <section className="panel client-filter-panel" aria-label="Filtros de clientes"><div className="form-grid">

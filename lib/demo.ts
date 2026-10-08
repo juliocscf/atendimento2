@@ -1,7 +1,8 @@
 export const DEMO_DATE = '2026-09-28';
 export const STORAGE_KEY = 'atendimento-2:prototype:v1';
 export const statuses = ['Recebido', 'Diagnóstico', 'Aguardando aprovação', 'Em execução', 'Em testes', 'Pronto para entrega', 'Concluído'] as const;
-export type Status = typeof statuses[number];
+export const closedStatuses = ['Concluído', 'Cancelada'] as const;
+export type Status = typeof statuses[number] | typeof closedStatuses[number];
 export type Mode = 'Balcão' | 'Remoto' | 'Domicílio';
 export type View = 'painel' | 'ordens' | 'clientes' | 'equipamentos' | 'agenda' | 'orcamentos' | 'servicos' | 'financeiro' | 'configuracoes';
 export type Client = { id: string; name: string; phone: string; email: string; address: string; taxId?: string; documentType?: 'cpf' | 'cnpj'; legalName?: string; tradeName?: string; notes?: string; addressFields?: { postalCode: string; street: string; number: string; complement: string; neighborhood: string; city: string; state: string } };
@@ -31,8 +32,9 @@ export function dateLabel(date: string) { return new Date(`${date}T12:00:00`).to
 export function nowLabel() { return new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' }); }
 export function initials(name: string) { return name.split(' ').slice(0, 2).map(n => n[0]).join(''); }
 export function normalize(value: string) { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
-export function isLate(order: Order) { return order.status !== 'Concluído' && order.due < DEMO_DATE; }
-export function nextStatus(order: Order): Status | undefined { const index = statuses.indexOf(order.status); return order.status === 'Em testes' && order.mode !== 'Balcão' ? 'Concluído' : statuses[index + 1]; }
+export function isClosedStatus(status: Status) { return closedStatuses.includes(status as typeof closedStatuses[number]); }
+export function isLate(order: Order) { return !isClosedStatus(order.status) && order.due < DEMO_DATE; }
+export function nextStatus(order: Order): Status | undefined { if (!statuses.includes(order.status as typeof statuses[number])) return undefined; const index = statuses.indexOf(order.status as typeof statuses[number]); return order.status === 'Em testes' && order.mode !== 'Balcão' ? 'Concluído' : statuses[index + 1]; }
 export function minutes(time: string) { const [h, m] = time.split(':').map(Number); return h * 60 + m; }
 export function hasConflict(appointments: Appointment[], candidate: Appointment) { return appointments.some(a => a.id !== candidate.id && a.date === candidate.date && a.technician === candidate.technician && minutes(candidate.time) < minutes(a.time) + a.duration && minutes(a.time) < minutes(candidate.time) + candidate.duration); }
 export function newCode(devices: Device[]) { const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; for (let attempt = 0; attempt < 100; attempt++) { const bytes = crypto.getRandomValues(new Uint8Array(4)); const code = Array.from(bytes, b => alphabet[b % 32]).join(''); if (!devices.some(d => d.code === code)) return code; } throw new Error('Não foi possível gerar um código. Tente novamente.'); }
