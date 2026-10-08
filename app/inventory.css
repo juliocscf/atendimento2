@@ -1,0 +1,32 @@
+.inventory-module { min-width: 0; }
+.inventory-toolbar,.inventory-actions,.inventory-tabs { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.inventory-toolbar { justify-content:space-between; margin:12px 0; }
+.inventory-toolbar>input { flex:1; min-width:180px; }
+.inventory-tabs { gap:4px; }
+.inventory-tabs button { border:0; border-radius:9px; padding:10px 13px; background:#edf1f8; color:#52617a; font:inherit; cursor:pointer; }
+.inventory-tabs button.active { background:#3559ed; color:white; }
+.inventory-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin:16px 0; }
+.inventory-metrics article { background:white; border:1px solid #e3e8f2; border-radius:12px; padding:18px; display:grid; gap:9px; }
+.inventory-metrics small { color:#64748b; }.inventory-metrics strong { font-size:23px; color:#172033; }
+.inventory-module input,.inventory-module select,.inventory-form input,.inventory-form select,.inventory-form textarea { box-sizing:border-box; max-width:100%; min-width:0; width:100%; border:1px solid #d8e0ee; border-radius:8px; background:white; padding:10px; color:#172033; font:inherit; }
+.inventory-form input:focus,.inventory-form select:focus,.inventory-module input:focus { outline:2px solid #667ef7; outline-offset:2px; }
+.inventory-check { display:flex!important; align-items:center; gap:8px; font-size:12px; }
+.inventory-check input { width:auto!important; flex:none; }
+.inventory-form { display:grid; gap:15px; }.inventory-form label,.inventory-actions label { display:grid; gap:6px; color:#52617a; font-size:12px; font-weight:600; }
+.inventory-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.inventory-error { padding:13px; border:1px solid #fecaca; background:#fff1f2; color:#b42318; border-radius:8px; }
+.inventory-hint { color:#64748b; font-size:12px; line-height:1.6; margin:0; }
+.inventory-overlay { position:fixed; inset:0; z-index:250; background:#0f172a70; display:flex; justify-content:center; align-items:center; padding:20px; }
+.inventory-dialog { background:#fff; border-radius:18px; width:min(860px,100%); max-height:90dvh; overflow:auto; padding:24px; box-shadow:0 24px 80px #0f172a40; }
+.inventory-dialog>header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }.inventory-dialog h2 { font-size:21px; }
+.inventory-sale-line { display:grid; grid-template-columns:minmax(180px,1fr) 100px 120px 30px; gap:10px; align-items:end; }
+.inventory-total { font-size:23px; font-weight:700; color:#3559ed; }
+.inventory-low { background:#fff1d6; color:#956000; padding:5px 9px; border-radius:7px; font-weight:700; }
+.inventory-module td small { display:block; color:#718096; margin-top:5px; white-space:normal; }.inventory-module td { vertical-align:middle; }
+.inventory-module table { min-width:680px; }.inventory-module .table-wrap { overflow-x:auto; }
+.inventory-import,.inventory-empty { padding:24px; }.inventory-empty { text-align:center; }.inventory-import h3 { display:flex; gap:8px; align-items:center; margin:10px 0 16px; }
+.inventory-import>p { color:#64748b; line-height:1.6; }.inventory-file { display:grid; gap:10px; margin:20px 0; max-width:480px; }
+.inventory-invoice { display:grid; gap:7px; background:#f4f6fc; padding:18px; border-radius:10px; font-size:13px; overflow-wrap:anywhere; }
+.inventory-import td select { min-width:190px; }.inventory-import td input[type=number] { width:100px; }
+.inventory-link { background:none; border:0; color:#3559ed; cursor:pointer; font-weight:700; }.inventory-part { padding:12px; border:1px solid #e3e8f2; border-radius:9px; display:grid; gap:8px; }
+@media(max-width:650px){.inventory-overlay{padding:10px}.inventory-dialog{padding:18px}.inventory-grid{grid-template-columns:1fr}.inventory-sale-line{grid-template-columns:1fr 1fr 30px}.inventory-sale-line>label:first-child{grid-column:1/-1}.inventory-metrics{grid-template-columns:1fr 1fr}.inventory-metrics strong{font-size:19px}.inventory-tabs{width:100%}.inventory-tabs button{flex:1;font-size:12px}.inventory-import{padding:15px}}
