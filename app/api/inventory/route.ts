@@ -38,9 +38,10 @@ export async function POST(request: Request) {
  const text=await request.text();
  if(text.length>200000) return NextResponse.json({error:'Operação muito grande.'},{status:413});
  let body; try{body=JSON.parse(text);}catch{return NextResponse.json({error:'Dados inválidos.'},{status:400});}
- const actions=['product','adjust','sale','payment','return_sale','reserve','consume','release','restock'];
+ const actions=['product','adjust','sale','payment','return_sale','cancel_sale','reserve','consume','release','restock'];
  if(!body||!actions.includes(body.action)||typeof body.unitId!=='string'||!uuidPattern.test(body.unitId)||typeof body.requestId!=='string'||!uuidPattern.test(body.requestId)||!body.data||typeof body.data!=='object'||Array.isArray(body.data)) return NextResponse.json({error:'Operação inválida.'},{status:400});
- const {data,error}=await supabase.rpc('inventory_command',{p_organization_id:membership.organization_id,p_unit_id:body.unitId,p_request_id:body.requestId,p_action:body.action,p_data:body.data});
+ const rpcName=body.action==='cancel_sale'?'cancel_product_sale':'inventory_command';
+ const {data,error}=await supabase.rpc(rpcName,{p_organization_id:membership.organization_id,p_unit_id:body.unitId,p_request_id:body.requestId,...(body.action==='cancel_sale'?{p_data:body.data}:{p_action:body.action,p_data:body.data})});
  if(error) return NextResponse.json({error:error.code==='23505'?'Código ou operação já cadastrado.':error.code==='23514'||error.code==='22P02'||error.code==='22003'||error.code==='23502'?'Confira os campos, valores e quantidades.':error.code==='23503'?'Produto, cliente ou unidade inválido.':error.code==='P0001'?error.message:'Não foi possível concluir a operação.'},{status:400});
  return NextResponse.json({data});
 }

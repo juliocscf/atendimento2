@@ -101,6 +101,7 @@
 .direct-sales-history-list article:last-child { border-bottom: 0; }
 .direct-sales-history-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; color: #5269c7; background: #eef2ff; }
 .direct-sales-history-icon.returned { color: #7b8494; background: #f0f2f5; }
+.direct-sales-history-icon.cancelled { color: #b34b45; background: #fff0ef; }
 .direct-sales-history-list article > div { min-width: 0; display: grid; gap: 4px; }
 .direct-sales-history-list article > div b { color: #3e4b64; font-size: 10px; }
 .direct-sales-history-list article > div small { overflow: hidden; color: #939dad; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
@@ -109,6 +110,23 @@
 .direct-sales-sale-status.paid { color: #258c63; background: #e7f7ef; }
 .direct-sales-sale-status.pending { color: #a47715; background: #fff8dd; }
 .direct-sales-sale-status.returned { color: #6f7888; background: #f0f2f5; }
+.direct-sales-sale-status.cancelled { color: #b42318; background: #fff0ef; }
+.direct-sales-cancel-button { grid-column: 2 / -1; justify-self: start; margin: -4px 0 8px; padding: 0; border: 0; color: #b34b45; background: transparent; font-size: 9px; font-weight: 750; cursor: pointer; }
+.direct-sales-cancel-button:hover { color: #8f2822; text-decoration: underline; }
+.direct-sales-modal-backdrop { position: fixed; inset: 0; z-index: 260; display: grid; place-items: center; padding: 18px; background: rgba(18, 28, 51, .42); backdrop-filter: blur(3px); }
+.direct-sales-cancel-modal { width: min(460px, 100%); padding: 22px; border: 1px solid #e8d9d6; border-radius: 15px; background: #fff; box-shadow: 0 24px 70px rgba(24,37,73,.24); }
+.direct-sales-cancel-modal > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.direct-sales-cancel-modal > header > div { display: flex; align-items: center; gap: 10px; }
+.direct-sales-cancel-modal > header > button { display: grid; place-items: center; padding: 4px; border: 0; color: #8b96a8; background: transparent; cursor: pointer; }
+.direct-sales-modal-icon { width: 35px; height: 35px; display: grid; place-items: center; flex: none; border-radius: 10px; color: #b34b45; background: #fff0ef; }
+.direct-sales-cancel-modal h3 { margin: 5px 0 0; color: #34415b; font: 800 16px 'Manrope Variable', sans-serif; }
+.direct-sales-cancel-modal > p { margin: 19px 0; color: #6e7a8e; font-size: 11px; line-height: 1.6; }
+.direct-sales-cancel-modal form { display: grid; gap: 14px; }
+.direct-sales-cancel-modal label { display: grid; gap: 7px; color: #657189; font-size: 10px; font-weight: 750; }
+.direct-sales-cancel-modal textarea { min-height: 85px; resize: vertical; padding: 10px; border: 1px solid #dfe5ee; border-radius: 8px; color: #3b465d; background: #fff; font: inherit; outline: 0; }
+.direct-sales-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.direct-sales-modal-actions .button.danger { border: 0; background: #b34b45; box-shadow: 0 7px 14px rgba(179,75,69,.2); }
+.direct-sales-modal-actions .button.danger:hover { background: #963b36; }
 .direct-sale-unavailable { padding: 38px; display: grid; justify-items: center; gap: 10px; color: #8a96a8; text-align: center; }
 .direct-sale-unavailable svg { color: #8294d9; }
 .direct-sale-unavailable h3 { margin: 0; color: #33415c; }
@@ -137,4 +155,5 @@
   .direct-sales-history-list article { grid-template-columns: 34px minmax(0,1fr) auto; padding: 9px 0; }
   .direct-sales-history-list article > strong { grid-column: 2; }
   .direct-sales-sale-status { grid-column: 3; grid-row: 1 / span 2; }
+  .direct-sales-cancel-button { grid-column: 2 / -1; }
 }

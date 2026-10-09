@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import {
+  AlertTriangle,
   Barcode,
   CheckCircle2,
   CreditCard,
@@ -14,6 +15,7 @@ import {
   Trash2,
   UserRound,
   Wallet,
+  X,
 } from 'lucide-react';
 import { useInventory, useInventoryCommand } from '@/components/inventory-view';
 import { money, normalize } from '@/lib/demo';
@@ -45,6 +47,9 @@ export function DirectSalesView({ liveMode, notify }: { liveMode: boolean; notif
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [saleError, setSaleError] = useState('');
+  const [saleToCancel, setSaleToCancel] = useState<{ id: string; total_cents: number } | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelBusy, setCancelBusy] = useState(false);
 
   const categories = useMemo(() => {
     if (!data) return ['Todos'];
@@ -130,6 +135,23 @@ export function DirectSalesView({ liveMode, notify }: { liveMode: boolean; notif
       setBusy(false);
     }
   }
+  async function submitCancel(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!saleToCancel || cancelReason.trim().length < 5) return setSaleError('Informe um motivo com pelo menos 5 caracteres.');
+    setCancelBusy(true);
+    setSaleError('');
+    try {
+      await command('cancel_sale', data!.unitId, { sale_id: saleToCancel.id, reason: cancelReason.trim() });
+      setSaleToCancel(null);
+      setCancelReason('');
+      notify('Venda cancelada e estoque devolvido.');
+      await reload();
+    } catch (cause) {
+      setSaleError(cause instanceof Error ? cause.message : 'Não foi possível cancelar a venda.');
+    } finally {
+      setCancelBusy(false);
+    }
+  }
 
   return <div className="direct-sales-view view-stack">
     <section className="direct-sales-hero">
@@ -201,10 +223,12 @@ export function DirectSalesView({ liveMode, notify }: { liveMode: boolean; notif
         {data.sales.slice(0, 8).map(sale => {
           const client = data.clients.find(item => item.id === sale.client_id)?.name ?? 'Consumidor não identificado';
           const balance = sale.status === 'returned' ? 0 : sale.total_cents - sale.paid_cents;
-          return <article key={sale.id}><span className={`direct-sales-history-icon ${sale.status}`}><ShoppingBag size={17} /></span><div><b>Venda {sale.id.slice(0, 8).toUpperCase()}</b><small>{client} · {new Date(sale.created_at).toLocaleString('pt-BR')}</small></div><span className={`direct-sales-sale-status ${sale.status === 'returned' ? 'returned' : balance > 0 ? 'pending' : 'paid'}`}>{sale.status === 'returned' ? 'Devolvida' : balance > 0 ? 'Pagamento pendente' : 'Recebida'}</span><strong>{money(sale.total_cents)}</strong></article>;
+          const cancelled = sale.status === 'cancelled';
+          return <article key={sale.id}><span className={`direct-sales-history-icon ${sale.status}`}><ShoppingBag size={17} /></span><div><b>Venda {sale.id.slice(0, 8).toUpperCase()}</b><small>{client} · {new Date(sale.created_at).toLocaleString('pt-BR')}</small></div><span className={`direct-sales-sale-status ${cancelled ? 'cancelled' : sale.status === 'returned' ? 'returned' : balance > 0 ? 'pending' : 'paid'}`}>{cancelled ? 'Cancelada' : sale.status === 'returned' ? 'Devolvida' : balance > 0 ? 'Pagamento pendente' : 'Recebida'}</span><strong>{money(sale.total_cents)}</strong>{canSell && sale.status === 'confirmed' && <button type="button" className="direct-sales-cancel-button" onClick={() => { setSaleToCancel({ id: sale.id, total_cents: sale.total_cents }); setCancelReason(''); setSaleError(''); }}>Cancelar venda</button>}</article>;
         })}
         {!data.sales.length && <div className="direct-sales-empty"><ShoppingBag size={28} /><b>Nenhuma venda registrada</b><span>As vendas confirmadas aparecerão aqui.</span></div>}
       </div>
     </section>
+    {saleToCancel && <div className="direct-sales-modal-backdrop"><section className="direct-sales-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-sale-title"><header><div><span className="direct-sales-modal-icon"><AlertTriangle size={18} /></span><div><span className="eyebrow">Ação irreversível no financeiro</span><h3 id="cancel-sale-title">Cancelar venda</h3></div></div><button type="button" aria-label="Fechar cancelamento" onClick={() => { if (!cancelBusy) setSaleToCancel(null); }}><X size={19} /></button></header><p>A venda de <b>{money(saleToCancel.total_cents)}</b> será marcada como cancelada e os produtos retornarão ao estoque. O sistema não devolve automaticamente o dinheiro ao cliente.</p><form onSubmit={submitCancel}><label>Motivo do cancelamento<textarea autoFocus required minLength={5} maxLength={500} value={cancelReason} onChange={event => setCancelReason(event.target.value)} placeholder="Ex.: venda lançada em duplicidade" /></label>{saleError && <div className="direct-sales-error" role="alert">{saleError}</div>}<div className="direct-sales-modal-actions"><button type="button" className="button secondary" disabled={cancelBusy} onClick={() => setSaleToCancel(null)}>Voltar</button><button type="submit" className="button danger" disabled={cancelBusy || cancelReason.trim().length < 5}>{cancelBusy ? 'Cancelando…' : 'Confirmar cancelamento'}</button></div></form></section></div>}
   </div>;
 }
