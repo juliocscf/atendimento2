@@ -12,17 +12,17 @@ type ReportData = {
   canViewFinance: boolean;
   kpis: {
     totalOrders: number; openOrders: number; completedOrders: number; overdueOrders: number;
-    revenueCents: number | null; receivedCents: number | null; openBalanceCents: number | null;
+    revenueCents: number | null; receivedCents: number | null; openBalanceCents: number | null; excludedReceivedCents: number | null;
     averageCompletionDays: number; quoteApprovalRate: number; approvedQuotes: number; sentQuotes: number;
     partsRevenueCents: number | null; partsCostCents: number | null; partsMarginCents: number | null;
     stockPhysical: number; stockReserved: number; stockAvailable: number; stockValueCents: number | null; lowStockCount: number;
   };
   statuses: Array<{ label: string; count: number }>;
   quotes: Array<{ status: string; count: number }>;
-  lowStock: Array<{ id: string; code: string; name: string; physical: number; reserved: number; available: number; minimum: number; costCents: number }>;
+  lowStock: Array<{ id: string; code: string; name: string; physical: number; reserved: number; available: number; minimum: number; costCents: number | null }>;
   topConsumed: Array<{ id: string; code?: string; name?: string; quantity: number }>;
   alerts: Array<{ severity: 'critical' | 'warning' | 'info'; title: string; detail: string; action: string; actionLabel: string }>;
-  recentOrders: Array<{ id: string; number: string; status: string; amountCents: number; balanceCents: number }>;
+  recentOrders: Array<{ id: string; number: string; status: string; amountCents: number | null; balanceCents: number | null }>;
 };
 
 type Props = { liveMode: boolean; notify: (message: string, error?: boolean) => void; onNavigate: (view: View) => void };
@@ -83,7 +83,7 @@ export function ReportsView({ liveMode, notify, onNavigate }: Props) {
     <div className="reports-kpi-grid">
       <Kpi label="OS no período" value={String(kpis.totalOrders)} detail={`${kpis.openOrders} em aberto`} icon={<BarChart3 size={17} />} />
       <Kpi label="Prazo vencido" value={String(kpis.overdueOrders)} detail={kpis.overdueOrders ? 'Requer atenção' : 'Nenhuma pendência'} tone={kpis.overdueOrders ? 'orange' : 'green'} icon={<Clock3 size={17} />} />
-      <Kpi label="Receita registrada" value={amount(kpis.revenueCents)} detail={amount(kpis.receivedCents) + ' recebido'} tone="purple" icon={<CircleDollarSign size={17} />} />
+      <Kpi label="Valor das OS válidas" value={amount(kpis.revenueCents)} detail={amount(kpis.receivedCents) + ' recebido'} tone="purple" icon={<CircleDollarSign size={17} />} />
       <Kpi label="Estoque disponível" value={kpis.stockAvailable.toLocaleString('pt-BR')} detail={`${kpis.stockReserved.toLocaleString('pt-BR')} reservado`} tone="blue" icon={<PackageCheck size={17} />} />
       <Kpi label="Aprovação de orçamentos" value={`${Math.round(kpis.quoteApprovalRate * 100)}%`} detail={`${kpis.approvedQuotes} aprovados`} tone="green" icon={<CheckCircle2 size={17} />} />
       <Kpi label="Tempo médio de conclusão" value={kpis.averageCompletionDays ? `${kpis.averageCompletionDays.toFixed(1)} dias` : '—'} detail={`${kpis.completedOrders} concluídas`} tone="orange" icon={<TrendingUp size={17} />} />
@@ -91,16 +91,16 @@ export function ReportsView({ liveMode, notify, onNavigate }: Props) {
     {data.alerts.length > 0 && <section className="panel reports-alerts"><div className="reports-section-heading"><div><h3>Atenção recomendada</h3><p>O sistema encontrou situações que podem exigir uma ação.</p></div><span>{data.alerts.length} alerta{data.alerts.length === 1 ? '' : 's'}</span></div><div className="reports-alert-list">{data.alerts.map((alert, index) => <article className={`reports-alert reports-alert-${alert.severity}`} key={`${alert.title}-${index}`}><AlertTriangle size={17} /><div><b>{alert.title}</b><p>{alert.detail}</p></div><button className="button secondary compact" onClick={() => onNavigate(alert.action as View)}>{alert.actionLabel}</button></article>)}</div></section>}
     <div className="reports-columns">
       <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Fluxo das ordens</h3><p>Distribuição por status no período.</p></div><span>{statusTotal} OS</span></div><ProgressRows rows={data.statuses} total={statusTotal} /></section>
-      <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Orçamentos</h3><p>Conversão das propostas enviadas.</p></div><span>{Math.round(kpis.quoteApprovalRate * 100)}%</span></div><ProgressRows rows={data.quotes.map(item => ({ label: statusLabel[item.status] ?? item.status, count: item.count }))} total={quoteTotal} /></section>
+      <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Orçamentos</h3><p>Última versão por OS válida; canceladas e anuladas excluídas.</p></div><span>{Math.round(kpis.quoteApprovalRate * 100)}%</span></div><ProgressRows rows={data.quotes.map(item => ({ label: statusLabel[item.status] ?? item.status, count: item.count }))} total={quoteTotal} /></section>
     </div>
     <div className="reports-columns">
       <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Estoque que merece atenção</h3><p>Produtos na quantidade mínima ou abaixo dela.</p></div><button className="text-button" onClick={() => onNavigate('produtos')}>Abrir estoque</button></div>{data.lowStock.length ? <div className="reports-table">{data.lowStock.map(product => <div className="reports-table-row" key={product.id}><span><b>{product.name}</b><small>{product.code} · mínimo {product.minimum.toLocaleString('pt-BR')}</small></span><strong className={product.available <= product.minimum ? 'reports-danger-text' : ''}>{product.available.toLocaleString('pt-BR')} disponível</strong></div>)}</div> : <div className="reports-success-note"><CheckCircle2 size={17} /> Nenhum produto abaixo do mínimo.</div>}</section>
       <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Peças mais utilizadas</h3><p>Consumo registrado no período.</p></div><button className="text-button" onClick={() => onNavigate('produtos')}>Ver produtos</button></div>{data.topConsumed.length ? <div className="reports-table">{data.topConsumed.map(product => <div className="reports-table-row" key={product.id}><span><b>{product.name ?? 'Produto'}</b><small>{product.code ?? '—'}</small></span><strong>{product.quantity.toLocaleString('pt-BR')} un.</strong></div>)}</div> : <div className="reports-muted-note">Nenhum consumo de peça registrado no período.</div>}</section>
     </div>
     <div className="reports-columns">
-      <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Financeiro</h3><p>Valores das OS e das peças aprovadas.</p></div><button className="text-button" onClick={() => onNavigate('financeiro')}>Abrir financeiro</button></div>{data.canViewFinance ? <div className="reports-finance-grid"><span>Em aberto<b>{amount(kpis.openBalanceCents)}</b></span><span>Venda de peças<b>{amount(kpis.partsRevenueCents)}</b></span><span>Margem de peças<b>{amount(kpis.partsMarginCents)}</b></span><span>Valor do estoque<b>{amount(kpis.stockValueCents)}</b></span></div> : <div className="reports-muted-note">Seu perfil pode consultar os indicadores operacionais, mas não os valores financeiros.</div>}</section>
+      <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Financeiro</h3><p>OS válidas, incluindo concluídas. Peças após desconto proporcional.</p></div><button className="text-button" onClick={() => onNavigate('financeiro')}>Abrir financeiro</button></div>{data.canViewFinance ? <div className="reports-finance-grid"><span>Em aberto<b>{amount(kpis.openBalanceCents)}</b></span><span>Venda de peças<b>{amount(kpis.partsRevenueCents)}</b></span><span>Margem de peças<b>{kpis.partsMarginCents == null ? 'Custo pendente' : amount(kpis.partsMarginCents)}</b></span><span>Valor do estoque<b>{amount(kpis.stockValueCents)}</b></span><span>Recebimentos de canceladas/anuladas · conferir<b>{amount(kpis.excludedReceivedCents)}</b></span></div> : <div className="reports-muted-note">Seu perfil pode consultar os indicadores operacionais, mas não os valores financeiros.</div>}</section>
       <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Últimas ordens do período</h3><p>Atendimentos mais recentes.</p></div><button className="text-button" onClick={() => onNavigate('ordens')}>Ver ordens</button></div><div className="reports-table">{data.recentOrders.slice(0, 5).map(order => <div className="reports-table-row" key={order.id}><span><b>{order.number}</b><small>{order.status}</small></span><strong>{data.canViewFinance ? amount(order.balanceCents) : '—'}</strong></div>)}</div></section>
     </div>
-    <p className="reports-footnote">Período analisado: {dateText}. Os indicadores são calculados a partir dos registros reais da unidade selecionada.</p>
+    <p className="reports-footnote">Período analisado: {dateText}. OS filtradas pela data de abertura e pela unidade. Valores e recebimentos acumulados dessas OS; canceladas e anuladas excluídas dos totais comerciais. Recebimentos dessas ordens são exibidos separadamente. Estoque representa o saldo atual.</p>
   </div>;
 }

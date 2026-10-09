@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { Order } from '@/lib/demo';
+import { orderBalance } from '@/lib/order-finance';
 
 type PaymentDialogProps = {
   orders: Order[];
@@ -21,7 +22,8 @@ function formatAmount(cents: number) {
   return (cents / 100).toFixed(2).replace('.', ',');
 }
 
-export function PaymentDialog({ orders, initialOrderId = '', liveMode, close, onCreated, notify }: PaymentDialogProps) {
+export function PaymentDialog({ orders: allOrders, initialOrderId = '', liveMode, close, onCreated, notify }: PaymentDialogProps) {
+  const orders = allOrders.filter(order => orderBalance(order) > 0);
   const [orderId, setOrderId] = useState(initialOrderId || (orders.find(order => order.amount > order.paid)?.id ?? orders[0]?.id ?? ''));
   const selected = orders.find(order => order.id === orderId);
   const [amount, setAmount] = useState(selected ? formatAmount(Math.max(0, selected.amount - selected.paid)) : '');

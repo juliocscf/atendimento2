@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isFinanciallyValid, orderBalance, orderFinancialSnapshot, summarizeOrderFinance } from '@/lib/order-finance';
 import { getRequestContext } from '@/lib/supabase/request-context';
 
 type SupabaseClient = Awaited<ReturnType<typeof getRequestContext>>['supabase'];
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
     const unitNames = new Map((unitsResult.data ?? []).map(unit => [unit.id, unit.name]));
 
     const ordersResult = await supabase.from('service_orders')
-      .select('id, number, status, amount_cents, paid_cents, due_date, created_at, updated_at, client_id')
+      .select('id, number, status, amount_cents, paid_cents, due_date, created_at, updated_at, client_id, quotes(version, status, total_cents, discount_cents, quote_items(*))')
       .eq('organization_id', membership.organization_id)
       .eq('unit_id', unitId)
       .gte('created_at', range.fromIso)
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
       .limit(10000);
     if (ordersResult.error) throw new Error('Não foi possível consultar as ordens de serviço.');
-    const orders = ordersResult.data ?? [];
+    const orders = (ordersResult.data ?? []).map(order => ({ ...order, ...orderFinancialSnapshot(order) }));
     const orderIds = orders.map(order => order.id);
 
     const [quotesResult, balances, products, movements, orderParts] = await Promise.all([
@@ -72,7 +73,10 @@ export async function GET(request: Request) {
       queryRows(supabase, 'order_stock_items', membership.organization_id, unitId),
     ]);
     if (quotesResult.error || products.error) throw new Error('Não foi possível consultar os dados dos relatórios.');
-    const quotes = quotesResult.data ?? [];
+    const validIds = new Set(orders.filter(order => isFinanciallyValid(order.status)).map(order => order.id));
+    const quotes = (quotesResult.data ?? []).filter(quote => validIds.has(quote.service_order_id))
+      .sort((a, b) => b.version - a.version)
+      .filter((quote, index, all) => all.findIndex(item => item.service_order_id === quote.service_order_id) === index);
     const productRows = products.data ?? [];
     const productById = new Map(productRows.map(product => [product.id, product]));
     const orderById = new Map(orders.map(order => [order.id, order]));
@@ -82,8 +86,10 @@ export async function GET(request: Request) {
     const completedOrders = orders.filter(order => order.status === 'Concluído');
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
     const overdueOrders = openOrders.filter(order => order.due_date && order.due_date < today);
-    const orderRevenue = orders.reduce((sum, order) => sum + money(order.amount_cents), 0);
-    const orderReceived = orders.reduce((sum, order) => sum + money(order.paid_cents), 0);
+    const finance = summarizeOrderFinance(orders.map(order => ({ status: order.status, amount: money(order.amount_cents), paid: money(order.paid_cents) })));
+    const orderRevenue = finance.amount;
+    const orderReceived = finance.received;
+    const canViewFinance = ['gestor', 'atendimento', 'financeiro'].includes(currentMembership.role);
     const completionDays = completedOrders
       .filter(order => order.created_at && order.updated_at)
       .map(order => daysBetween(order.created_at, order.updated_at));
@@ -96,15 +102,10 @@ export async function GET(request: Request) {
       ? approvedQuotes.length / quotes.filter(quote => ['approved', 'rejected', 'expired'].includes(quote.status)).length
       : 0;
 
-    const quoteIds = approvedQuotes.map(quote => quote.id);
-    const quoteItemsResult = quoteIds.length
-      ? await supabase.from('quote_items').select('quote_id, item_type, quantity, total_cents, unit_cost_cents, product_id').eq('organization_id', membership.organization_id).in('quote_id', quoteIds).limit(10000)
-      : { data: [], error: null };
-    if (quoteItemsResult.error) throw new Error('Não foi possível consultar os itens dos orçamentos.');
-    const quoteItems = quoteItemsResult.data ?? [];
-    const approvedParts = quoteItems.filter(item => item.item_type === 'part');
-    const partsRevenue = approvedParts.reduce((sum, item) => sum + money(item.total_cents), 0);
-    const partsCost = approvedParts.reduce((sum, item) => sum + money(item.unit_cost_cents) * money(item.quantity), 0);
+    const breakdowns = orders.filter(order => isFinanciallyValid(order.status)).map(order => order.financialBreakdown);
+    const partsRevenue = breakdowns.reduce((sum, item) => sum + item.partsCents, 0);
+    const partsCost = breakdowns.reduce((sum, item) => sum + item.partsCostCents, 0);
+    const missingPartsCost = breakdowns.some(item => item.partsMarginCents == null);
 
     const balancesByProduct = new Map(balances.map(balance => [balance.product_id, balance]));
     const lowStock = productRows.map(product => {
@@ -118,12 +119,12 @@ export async function GET(request: Request) {
     const stockValue = productRows.reduce((sum, product) => sum + money(balancesByProduct.get(product.id)?.quantity) * money(product.cost_cents), 0);
     const consumedByProduct = new Map<string, number>();
     for (const movement of movements) {
-      if (!['consume', 'sale'].includes(String(movement.kind))) continue;
-      const quantity = Math.abs(money(movement.quantity_delta));
+      if (!['consume', 'sale', 'restock', 'return'].includes(String(movement.kind))) continue;
+      const quantity = -money(movement.quantity_delta);
       consumedByProduct.set(String(movement.product_id), (consumedByProduct.get(String(movement.product_id)) ?? 0) + quantity);
     }
-    const topConsumed = [...consumedByProduct.entries()].map(([id, quantity]) => ({ ...productById.get(id), id, quantity })).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
-    const activeReservations = orderParts.filter(part => ['reserved', 'consumed'].includes(String(part.status)));
+    const topConsumed = [...consumedByProduct.entries()].filter(([, quantity]) => quantity > 0).map(([id, quantity]) => ({ ...productById.get(id), id, quantity })).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
+    const activeReservations = orderParts.filter(part => part.status === 'reserved');
     const staleReservations = activeReservations.filter(part => closedStatuses.has(orderById.get(part.order_id)?.status));
     const oldQuotes = quotes.filter(quote => quote.status === 'sent' && daysBetween(quote.updated_at, new Date().toISOString()) >= 2);
 
@@ -132,9 +133,9 @@ export async function GET(request: Request) {
     if (oldQuotes.length) alerts.push({ severity: 'warning', title: `${oldQuotes.length} orçamento${oldQuotes.length === 1 ? '' : 's'} aguardando resposta`, detail: 'Há propostas enviadas há pelo menos 48 horas.', action: 'orcamentos', actionLabel: 'Ver orçamentos' });
     if (lowStock.length) alerts.push({ severity: 'warning', title: `${lowStock.length} produto${lowStock.length === 1 ? '' : 's'} no mínimo`, detail: lowStock.slice(0, 3).map(product => product.name).join(', '), action: 'produtos', actionLabel: 'Ver estoque' });
     if (staleReservations.length) alerts.push({ severity: 'warning', title: `${staleReservations.length} reserva${staleReservations.length === 1 ? '' : 's'} em OS encerrada`, detail: 'Confira as peças para evitar estoque preso.', action: 'produtos', actionLabel: 'Conferir peças' });
-    if (orderRevenue - orderReceived > 0) alerts.push({ severity: 'info', title: 'Há valores em aberto', detail: `Saldo no período: R$ ${((orderRevenue - orderReceived) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`, action: 'financeiro', actionLabel: 'Ver financeiro' });
+    if (canViewFinance && finance.balance > 0) alerts.push({ severity: 'info', title: 'Há valores em aberto', detail: `Saldo no período: R$ ${(finance.balance / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`, action: 'financeiro', actionLabel: 'Ver financeiro' });
 
-    const canViewFinance = ['gestor', 'atendimento', 'financeiro'].includes(currentMembership.role);
+    if (canViewFinance && finance.excludedReceived > 0) alerts.push({ severity: 'warning', title: 'Recebimentos de OS canceladas ou anuladas', detail: 'Há valores registrados nessas OS. Confira a destinação ou devolução no Financeiro.', action: 'financeiro', actionLabel: 'Conferir recebimentos' });
     return NextResponse.json({
       data: {
         range: { from: range.from, until: range.until },
@@ -149,14 +150,15 @@ export async function GET(request: Request) {
           overdueOrders: overdueOrders.length,
           revenueCents: canViewFinance ? orderRevenue : null,
           receivedCents: canViewFinance ? orderReceived : null,
-          openBalanceCents: canViewFinance ? Math.max(0, orderRevenue - orderReceived) : null,
+          openBalanceCents: canViewFinance ? finance.balance : null,
+          excludedReceivedCents: canViewFinance ? finance.excludedReceived : null,
           averageCompletionDays,
           quoteApprovalRate,
           approvedQuotes: approvedQuotes.length,
           sentQuotes: quotes.filter(quote => quote.status === 'sent').length,
           partsRevenueCents: canViewFinance ? partsRevenue : null,
           partsCostCents: canViewFinance ? partsCost : null,
-          partsMarginCents: canViewFinance ? partsRevenue - partsCost : null,
+          partsMarginCents: canViewFinance && !missingPartsCost ? partsRevenue - partsCost : null,
           stockPhysical,
           stockReserved,
           stockAvailable: Math.max(0, stockPhysical - stockReserved),
@@ -165,10 +167,10 @@ export async function GET(request: Request) {
         },
         statuses: statusCounts,
         quotes: quoteCounts,
-        lowStock: lowStock.slice(0, 8),
+        lowStock: lowStock.slice(0, 8).map(item => ({ ...item, costCents: canViewFinance ? item.costCents : null })),
         topConsumed,
         alerts,
-        recentOrders: orders.slice(0, 8).map(order => ({ id: order.id, number: order.number, status: order.status, amountCents: money(order.amount_cents), balanceCents: Math.max(0, money(order.amount_cents) - money(order.paid_cents)) })),
+        recentOrders: orders.slice(0, 8).map(order => ({ id: order.id, number: order.number, status: order.status, amountCents: canViewFinance ? money(order.amount_cents) : null, balanceCents: canViewFinance ? orderBalance({ status: order.status, amount: money(order.amount_cents), paid: money(order.paid_cents) }) : null })),
       },
     });
   } catch (error) {

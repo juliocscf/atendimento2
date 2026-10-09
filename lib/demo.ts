@@ -33,7 +33,7 @@ export function nowLabel() { return new Date().toLocaleString('pt-BR', { timeZon
 export function initials(name: string) { return name.split(' ').slice(0, 2).map(n => n[0]).join(''); }
 export function normalize(value: string) { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
 export function isClosedStatus(status: Status) { return closedStatuses.includes(status as typeof closedStatuses[number]); }
-export function isLate(order: Order) { return !isClosedStatus(order.status) && order.due < DEMO_DATE; }
+export function isLate(order: Order) { return !isClosedStatus(order.status) && !!order.due && order.due < new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); }
 export function nextStatus(order: Order): Status | undefined { if (!statuses.includes(order.status as typeof statuses[number])) return undefined; const index = statuses.indexOf(order.status as typeof statuses[number]); return order.status === 'Em testes' && order.mode !== 'Balcão' ? 'Concluído' : statuses[index + 1]; }
 export function minutes(time: string) { const [h, m] = time.split(':').map(Number); return h * 60 + m; }
 export function hasConflict(appointments: Appointment[], candidate: Appointment) { return appointments.some(a => a.id !== candidate.id && a.date === candidate.date && a.technician === candidate.technician && minutes(candidate.time) < minutes(a.time) + a.duration && minutes(a.time) < minutes(candidate.time) + candidate.duration); }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { financialBreakdown, unclassifiedBreakdown } from '@/lib/quote-finance';
+import { orderFinancialSnapshot } from '@/lib/order-finance';
 import { getRequestContext } from '@/lib/supabase/request-context';
 import { createPortalToken, hashPortalToken } from '@/lib/supabase/portal-token';
 
@@ -27,10 +27,7 @@ export async function GET(request: Request) {
     if (!batch || batch.length < 500) break;
   }
   return NextResponse.json({ data: data.map(({ quotes, ...order }) => {
-    const currentQuote = quotes.filter(quote => ['sent', 'approved'].includes(quote.status)).sort((a, b) => b.version - a.version)[0];
-    const displayAmount = currentQuote?.total_cents ?? order.amount_cents;
-    const breakdown = currentQuote ? financialBreakdown(currentQuote.quote_items, currentQuote.discount_cents) : null;
-    return { ...order, amount_cents: displayAmount, financialBreakdown: breakdown && breakdown.totalCents === displayAmount ? breakdown : unclassifiedBreakdown(displayAmount) };
+    return { ...order, ...orderFinancialSnapshot({ ...order, quotes }) };
   }) });
 }
 

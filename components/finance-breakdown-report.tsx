@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { isFinanciallyValid } from '@/lib/order-finance';
 import { money, type Order } from '@/lib/demo';
 import { type FinancialBreakdown, unclassifiedBreakdown } from '@/lib/quote-finance';
 
@@ -8,14 +9,14 @@ export function FinanceBreakdownReport({ orders, clientName, onOrder }: { orders
   const [category, setCategory] = useState('Todos');
   const [from, setFrom] = useState('');
   const [until, setUntil] = useState('');
-  const rows = orders.map(order => ({ order, breakdown: order.financialBreakdown ?? unclassifiedBreakdown(order.amount) })).filter(({ order, breakdown }) => {
+  const rows = orders.filter(order => isFinanciallyValid(order.status)).map(order => ({ order, breakdown: order.financialBreakdown ?? unclassifiedBreakdown(order.amount) })).filter(({ order, breakdown }) => {
     const date = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) : '';
     return (category === 'Todos' || breakdown.category === category) && (!from || !!date && date >= from) && (!until || !!date && date <= until);
   });
   const sum = (key: keyof Pick<FinancialBreakdown, 'partsCents' | 'laborCents' | 'unclassifiedCents' | 'partsCostCents' | 'missingCostItems'>) => rows.reduce((total, row) => total + row.breakdown[key], 0);
   const margin = rows.some(row => row.breakdown.partsMarginCents == null) ? null : rows.reduce((total, row) => total + (row.breakdown.partsMarginCents ?? 0), 0);
   return <section className="panel full-panel finance-breakdown-report">
-    <div className="finance-report-heading"><h2>Peças e mão de obra</h2><p>Valores das OS conforme orçamento aprovado, após desconto proporcional. Não representam recebimentos. Filtre pela data de abertura do atendimento.</p></div>
+    <div className="finance-report-heading"><h2>Peças e mão de obra</h2><p>Valores das OS válidas, incluindo concluídas, após desconto proporcional. Canceladas e anuladas ficam fora dos totais. Não representam recebimentos. Filtre pela data de abertura do atendimento.</p></div>
     <div className="finance-report-filters"><label>Tipo de atendimento<select value={category} onChange={event => setCategory(event.target.value)}>{['Todos', 'Somente peças', 'Somente mão de obra', 'Peças com mão de obra', 'Classificação pendente', 'Sem itens'].map(value => <option key={value}>{value}</option>)}</select></label><label>Abertura a partir de<input type="date" value={from} onChange={event => setFrom(event.target.value)} /></label><label>Abertura até<input type="date" min={from || undefined} value={until} onChange={event => setUntil(event.target.value)} /></label></div>
     <div className="finance-report-totals"><span>Venda de peças<b>{money(sum('partsCents'))}</b></span><span>Mão de obra<b>{money(sum('laborCents'))}</b></span><span>Custo das peças informado<b>{money(sum('partsCostCents'))}</b></span><span>Margem das peças<b>{margin == null ? 'Custo pendente' : money(margin)}</b></span><span>Não classificado<b>{money(sum('unclassifiedCents'))}</b></span></div>
     {sum('missingCostItems') > 0 && <p className="finance-report-note">Informe o custo de todas as peças para calcular a margem completa.</p>}
