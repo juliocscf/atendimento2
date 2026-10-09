@@ -413,3 +413,12 @@ kbd { color: #9da7b6; font: 10px/1 'Inter Variable', Inter, sans-serif; border: 
 .parts-status { background: #fff3e0; color: #9a5b00; }
  .status-cancelada { color: #b42318; background: #fff0ef; }
  .profile-link-card { width: min(700px, 100%); }.profile-link-card .auth-card-heading { margin-bottom: 22px; }.profile-link-expiry { display: block; margin-top: 10px; color: #9aa4b6; font-size: 10px; }.profile-link-form { gap: 14px; }.profile-link-form .form-grid { width: 100%; }.profile-link-form .full-label { margin-bottom: 0; }.profile-link-form .form-hint { margin-top: 1px; }
+
+.quote-main-action { flex: 1; min-width: 0; border: 0; padding: 0; background: transparent; display: flex; align-items: center; gap: 12px; text-align: left; color: inherit; cursor: pointer; }
+.quote-main-action:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 8px; }
+.quote-row-archived { background: #fcfcfd; }
+.quote-row-archived .quote-icon { color: #7c879b; background: #f0f2f5; }
+.quote-row-archived .quote-main b, .quote-row-archived .quote-value b { color: #6f7b91; }
+.quote-archive-panel { border-color: #e4e7ed; }
+.quote-archive-panel .panel-header h3 { display: flex; align-items: center; gap: 6px; }
+.quote-empty { padding: 22px 0; color: #8b96a8; font-size: 11px; }
