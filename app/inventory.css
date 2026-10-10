@@ -16,6 +16,8 @@
 .inventory-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .inventory-error { padding:13px; border:1px solid #fecaca; background:#fff1f2; color:#b42318; border-radius:8px; }
 .inventory-hint { color:#64748b; font-size:12px; line-height:1.6; margin:0; }
+.inventory-fiscal-fields { border:1px solid #dfe5f0; border-radius:12px; padding:16px; margin:0; background:#f8faff; }
+.inventory-fiscal-fields legend { padding:0 7px; color:#243b76; font-size:13px; font-weight:800; }
 .inventory-overlay { position:fixed; inset:0; z-index:250; background:#0f172a70; display:flex; justify-content:center; align-items:center; padding:20px; }
 .inventory-dialog { background:#fff; border-radius:18px; width:min(860px,100%); max-height:90dvh; overflow:auto; padding:24px; box-shadow:0 24px 80px #0f172a40; }
 .inventory-dialog>header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }.inventory-dialog h2 { font-size:21px; }

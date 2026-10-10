@@ -4,6 +4,7 @@ import '@fontsource-variable/manrope';
 import './globals.css';
 import './inventory.css';
 import './direct-sales.css';
+import './fiscal.css';
 import './reports.css';
 import { DemoProvider } from '@/components/demo-provider';
 export const metadata: Metadata = { title: 'Nexo · Gestão da assistência', description: 'Protótipo navegável do Atendimento 2. Clientes, equipamentos e serviços em um só lugar.', robots: { index: false, follow: false } };

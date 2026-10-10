@@ -1,4 +1,4 @@
-export type Product = { id: string; code: string; name: string; barcode: string; category: string; brand: string; supplier: string; unit: string; cost_cents: number; price_cents: number; minimum_stock: number; active: boolean };
+export type Product = { id: string; code: string; name: string; barcode: string; category: string; brand: string; supplier: string; unit: string; cost_cents: number; price_cents: number; minimum_stock: number; active: boolean; ncm: string; cfop: string; csosn: string; cst: string };
 export type StockBalance = { product_id: string; quantity: number; reserved: number };
 export type Sale = { id: string; client_id: string | null; status: 'confirmed' | 'returned' | 'cancelled'; total_cents: number; paid_cents: number; note: string; created_at: string };
 export type StockPart = { id: string; order_id: string; product_id: string; quantity: number; status: 'reserved' | 'consumed' | 'released' | 'returned' };
