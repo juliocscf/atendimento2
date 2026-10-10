@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isFinanciallyValid, orderBalance, orderFinancialSnapshot, summarizeOrderFinance } from '@/lib/order-finance';
+import { summarizeCommercialResults } from '@/lib/report-metrics';
 import { getRequestContext } from '@/lib/supabase/request-context';
 
 type SupabaseClient = Awaited<ReturnType<typeof getRequestContext>>['supabase'];
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
     const orders = (ordersResult.data ?? []).map(order => ({ ...order, ...orderFinancialSnapshot(order) }));
     const orderIds = orders.map(order => order.id);
 
-    const [quotesResult, balances, products, movements, orderParts] = await Promise.all([
+    const [quotesResult, balances, products, movements, orderParts, salesResult] = await Promise.all([
       orderIds.length
         ? supabase.from('quotes').select('id, service_order_id, version, status, total_cents, created_at, updated_at').eq('organization_id', membership.organization_id).in('service_order_id', orderIds).limit(10000)
         : Promise.resolve({ data: [], error: null }),
@@ -71,8 +72,15 @@ export async function GET(request: Request) {
       supabase.from('products').select('id, code, name, cost_cents, minimum_stock, active').eq('organization_id', membership.organization_id).eq('active', true).limit(10000),
       queryRows(supabase, 'stock_movements', membership.organization_id, unitId, range.fromIso, range.untilIso),
       queryRows(supabase, 'order_stock_items', membership.organization_id, unitId),
+      supabase.from('product_sales')
+        .select('id, status, subtotal_cents, discount_cents, total_cents, product_sale_items(quantity, cost_cents)')
+        .eq('organization_id', membership.organization_id)
+        .eq('unit_id', unitId)
+        .gte('created_at', range.fromIso)
+        .lt('created_at', range.untilIso)
+        .limit(10000),
     ]);
-    if (quotesResult.error || products.error) throw new Error('Não foi possível consultar os dados dos relatórios.');
+    if (quotesResult.error || products.error || salesResult.error) throw new Error('Não foi possível consultar os dados dos relatórios.');
     const validIds = new Set(orders.filter(order => isFinanciallyValid(order.status)).map(order => order.id));
     const quotes = (quotesResult.data ?? []).filter(quote => validIds.has(quote.service_order_id))
       .sort((a, b) => b.version - a.version)
@@ -106,6 +114,7 @@ export async function GET(request: Request) {
     const partsRevenue = breakdowns.reduce((sum, item) => sum + item.partsCents, 0);
     const partsCost = breakdowns.reduce((sum, item) => sum + item.partsCostCents, 0);
     const missingPartsCost = breakdowns.some(item => item.partsMarginCents == null);
+    const commercial = summarizeCommercialResults(orders, salesResult.data ?? []);
 
     const balancesByProduct = new Map(balances.map(balance => [balance.product_id, balance]));
     const lowStock = productRows.map(product => {
@@ -169,6 +178,20 @@ export async function GET(request: Request) {
         quotes: quoteCounts,
         lowStock: lowStock.slice(0, 8).map(item => ({ ...item, costCents: canViewFinance ? item.costCents : null })),
         topConsumed,
+        commercial: {
+          ...commercial,
+          directProductRevenueCents: canViewFinance ? commercial.directProductRevenueCents : null,
+          orderProductRevenueCents: canViewFinance ? commercial.orderProductRevenueCents : null,
+          productRevenueCents: canViewFinance ? commercial.productRevenueCents : null,
+          productCostCents: canViewFinance ? commercial.productCostCents : null,
+          productMarginCents: canViewFinance ? commercial.productMarginCents : null,
+          serviceRevenueCents: canViewFinance ? commercial.serviceRevenueCents : null,
+          unclassifiedRevenueCents: canViewFinance ? commercial.unclassifiedRevenueCents : null,
+          grossRevenueCents: canViewFinance ? commercial.grossRevenueCents : null,
+          discountCents: canViewFinance ? commercial.discountCents : null,
+          netRevenueCents: canViewFinance ? commercial.netRevenueCents : null,
+          averageTicketCents: canViewFinance ? commercial.averageTicketCents : null,
+        },
         alerts,
         recentOrders: orders.slice(0, 8).map(order => ({ id: order.id, number: order.number, status: order.status, amountCents: canViewFinance ? money(order.amount_cents) : null, balanceCents: canViewFinance ? orderBalance({ status: order.status, amount: money(order.amount_cents), paid: money(order.paid_cents) }) : null })),
       },

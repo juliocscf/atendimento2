@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle, BarChart3, CheckCircle2, CircleDollarSign, Clock3, PackageCheck, RefreshCw, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BarChart3, CheckCircle2, CircleDollarSign, Clock3, PackageCheck, ReceiptText, RefreshCw, ShoppingCart, TrendingUp, Wrench } from 'lucide-react';
 import { money, type View } from '@/lib/demo';
 
 type ReportData = {
@@ -21,6 +21,15 @@ type ReportData = {
   quotes: Array<{ status: string; count: number }>;
   lowStock: Array<{ id: string; code: string; name: string; physical: number; reserved: number; available: number; minimum: number; costCents: number | null }>;
   topConsumed: Array<{ id: string; code?: string; name?: string; quantity: number }>;
+  commercial: {
+    directSaleCount: number; completedOrderCount: number; transactionCount: number;
+    directProductQuantity: number; orderProductQuantity: number; productQuantity: number;
+    directProductRevenueCents: number | null; orderProductRevenueCents: number | null; productRevenueCents: number | null;
+    productCostCents: number | null; productMarginCents: number | null;
+    serviceQuantity: number; serviceItemCount: number; serviceRevenueCents: number | null;
+    unclassifiedRevenueCents: number | null; grossRevenueCents: number | null; discountCents: number | null;
+    netRevenueCents: number | null; averageTicketCents: number | null;
+  };
   alerts: Array<{ severity: 'critical' | 'warning' | 'info'; title: string; detail: string; action: string; actionLabel: string }>;
   recentOrders: Array<{ id: string; number: string; status: string; amountCents: number | null; balanceCents: number | null }>;
 };
@@ -29,6 +38,7 @@ type Props = { liveMode: boolean; notify: (message: string, error?: boolean) => 
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 const monthAgo = () => new Date(Date.now() - 29 * 86400000).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 const amount = (value: number | null) => value == null ? '—' : money(value);
+const quantity = (value: number) => value.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 const statusLabel: Record<string, string> = { sent: 'Enviados', approved: 'Aprovados', rejected: 'Recusados', expired: 'Expirados' };
 
 function Kpi({ label, value, detail, tone = 'blue', icon }: { label: string; value: string; detail: string; tone?: string; icon: React.ReactNode }) {
@@ -66,7 +76,12 @@ export function ReportsView({ liveMode, notify, onNavigate }: Props) {
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { void load(); }, [liveMode]);
+  useEffect(() => {
+    const task = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(task);
+    // The initial load follows connection mode; date changes wait for the Atualizar action.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveMode]);
 
   if (!liveMode) return <section className="panel reports-empty"><BarChart3 size={28} /><h2>Relatórios conectados</h2><p>Conecte o Supabase para visualizar indicadores reais da operação.</p></section>;
   if (loading && !data) return <section className="panel reports-empty"><RefreshCw className="spin" size={24} /><p>Consolidando os dados da operação…</p></section>;
@@ -89,6 +104,28 @@ export function ReportsView({ liveMode, notify, onNavigate }: Props) {
       <Kpi label="Tempo médio de conclusão" value={kpis.averageCompletionDays ? `${kpis.averageCompletionDays.toFixed(1)} dias` : '—'} detail={`${kpis.completedOrders} concluídas`} tone="orange" icon={<TrendingUp size={17} />} />
     </div>
     {data.alerts.length > 0 && <section className="panel reports-alerts"><div className="reports-section-heading"><div><h3>Atenção recomendada</h3><p>O sistema encontrou situações que podem exigir uma ação.</p></div><span>{data.alerts.length} alerta{data.alerts.length === 1 ? '' : 's'}</span></div><div className="reports-alert-list">{data.alerts.map((alert, index) => <article className={`reports-alert reports-alert-${alert.severity}`} key={`${alert.title}-${index}`}><AlertTriangle size={17} /><div><b>{alert.title}</b><p>{alert.detail}</p></div><button className="button secondary compact" onClick={() => onNavigate(alert.action as View)}>{alert.actionLabel}</button></article>)}</div></section>}
+    <section className="panel reports-commercial">
+      <div className="reports-section-heading"><div><h3>Resultado comercial do período</h3><p>Somente vendas confirmadas e OS concluídas; cancelamentos, anulações e devoluções ficam fora.</p></div><span>{data.commercial.transactionCount} lançamento{data.commercial.transactionCount === 1 ? '' : 's'}</span></div>
+      <div className="reports-commercial-grid">
+        <article className="reports-commercial-card reports-commercial-products">
+          <div className="reports-commercial-title"><span><ShoppingCart size={18} /></span><div><small>Produtos vendidos</small><strong>{quantity(data.commercial.productQuantity)} un.</strong></div></div>
+          <b className="reports-commercial-value">{amount(data.commercial.productRevenueCents)}</b>
+          <div className="reports-commercial-breakdown"><span>Venda direta <b>{quantity(data.commercial.directProductQuantity)} un. · {amount(data.commercial.directProductRevenueCents)}</b></span><span>Peças em OS concluídas <b>{quantity(data.commercial.orderProductQuantity)} un. · {amount(data.commercial.orderProductRevenueCents)}</b></span><span>Margem dos produtos <b>{data.commercial.productMarginCents == null ? 'Custo pendente' : amount(data.commercial.productMarginCents)}</b></span></div>
+          <button className="text-button" onClick={() => onNavigate('vendas')}>Conferir vendas diretas</button>
+        </article>
+        <article className="reports-commercial-card reports-commercial-services">
+          <div className="reports-commercial-title"><span><Wrench size={18} /></span><div><small>Serviços realizados</small><strong>{quantity(data.commercial.serviceQuantity)} serviço{data.commercial.serviceQuantity === 1 ? '' : 's'}</strong></div></div>
+          <b className="reports-commercial-value">{amount(data.commercial.serviceRevenueCents)}</b>
+          <div className="reports-commercial-breakdown"><span>Itens de mão de obra <b>{data.commercial.serviceItemCount}</b></span><span>OS concluídas <b>{data.commercial.completedOrderCount}</b></span><span>Valor médio por OS <b>{data.commercial.completedOrderCount && data.commercial.serviceRevenueCents != null ? amount(Math.round(data.commercial.serviceRevenueCents / data.commercial.completedOrderCount)) : '—'}</b></span></div>
+          <button className="text-button" onClick={() => onNavigate('financeiro')}>Conferir serviços</button>
+        </article>
+        <article className="reports-commercial-card reports-commercial-summary">
+          <div className="reports-commercial-title"><span><ReceiptText size={18} /></span><div><small>Faturamento realizado</small><strong>{amount(data.commercial.netRevenueCents)}</strong></div></div>
+          <div className="reports-commercial-breakdown"><span>Valor bruto <b>{amount(data.commercial.grossRevenueCents)}</b></span><span>Descontos <b>{amount(data.commercial.discountCents)}</b></span><span>Ticket médio <b>{amount(data.commercial.averageTicketCents)}</b></span>{(data.commercial.unclassifiedRevenueCents ?? 0) > 0 && <span className="reports-commercial-warning">Sem classificação <b>{amount(data.commercial.unclassifiedRevenueCents)}</b></span>}</div>
+          <small className="reports-commercial-formula">Vendas diretas + total das OS concluídas</small>
+        </article>
+      </div>
+    </section>
     <div className="reports-columns">
       <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Fluxo das ordens</h3><p>Distribuição por status no período.</p></div><span>{statusTotal} OS</span></div><ProgressRows rows={data.statuses} total={statusTotal} /></section>
       <section className="panel reports-card"><div className="reports-section-heading"><div><h3>Orçamentos</h3><p>Última versão por OS válida; canceladas e anuladas excluídas.</p></div><span>{Math.round(kpis.quoteApprovalRate * 100)}%</span></div><ProgressRows rows={data.quotes.map(item => ({ label: statusLabel[item.status] ?? item.status, count: item.count }))} total={quoteTotal} /></section>
